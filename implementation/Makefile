@@ -57,7 +57,7 @@ all-classes :
 .PHONY : test
 test : all-classes
 	java -cp $(UNITCLASSPATH) unit.UnitTests
-	java conformance.ConformanceTests
+	java -ea conformance.ConformanceTests
 
 # Delete all intermediate and final output and leave only the source.
 .PHONY : clean

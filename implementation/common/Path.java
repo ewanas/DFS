@@ -24,32 +24,11 @@ public class Path implements Iterable<String>, Serializable
     final String    SEPARATOR   =   "/";
     final String    ROOT        =   "/";
 
-    String      pathComponent;
+    String      pathComponent   =   "";
     Path        pathPrefix;
 
-    String      debug = "";
-
-    private boolean isValid (String p)
-    {
-        if (p.indexOf (":") == -1) {
-            if (p.indexOf (SEPARATOR) == -1) {
-                if (!p.equals ("")) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-        //return p.indexOf (":") == -1 && p.indexOf (SEPARATOR) == -1 && !p.equals ("");
-    }
-
     /** Creates a new path which represents the root directory. */
-    public Path()
-    {
-        pathComponent = "";
-
-        debug = "This was created in a blank way";
-    }
+    public Path() { }
 
     /** Creates a new path by appending the given component to an existing path.
 
@@ -62,13 +41,9 @@ public class Path implements Iterable<String>, Serializable
     */
     public Path(Path path, String component)
     {
-        this ();
-
-        debug = "This was created with another path and: [" + component + "]";
-
         if (component == null || !isValid (component)) {
             throw new IllegalArgumentException (
-                    "Path contains an illegal character"
+                    "Invalid path component"
                     );
         }
 
@@ -90,10 +65,6 @@ public class Path implements Iterable<String>, Serializable
      */
     public Path(String path)
     {
-        this ();
-
-        debug = "This was created using a string: [" + path + "]";
-
         String [] components;
 
         if (path != null && path.indexOf (SEPARATOR) == 0) {
@@ -106,8 +77,6 @@ public class Path implements Iterable<String>, Serializable
 
                 components = Arrays.copyOfRange (components, 0, components.length - 1);
 
-                System.out.println (Arrays.asList (components));
-
                 for (String component : components) {
                     if (!component.equals ("")) {
                         pathPrefix = new Path (pathPrefix, component);
@@ -116,11 +85,13 @@ public class Path implements Iterable<String>, Serializable
             } else if (path.equals (ROOT)) {
                 return;
             }
-        } else {
-            throw new IllegalArgumentException (
-                    "Invalid path string"
-                    );
+
+            return;
         }
+
+        throw new IllegalArgumentException (
+                "Invalid path string"
+                );
     }
 
     /** Returns an iterator over the components of the path.
@@ -231,11 +202,7 @@ public class Path implements Iterable<String>, Serializable
      */
     public boolean isSubpath(Path other)
     {
-        if (this.toString ().indexOf (other.toString ()) != -1) {
-            return true;
-        }
-
-        return false;
+        return toString ().indexOf (other.toString ()) == 0;
     }
 
     /** Converts the path to <code>File</code> object.
@@ -261,14 +228,14 @@ public class Path implements Iterable<String>, Serializable
     public boolean equals(Object other)
     {
         return toString ().equals (other.toString ());
-        // throw new UnsupportedOperationException("not implemented");
     }
 
     /** Returns the hash code of the path. */
     @Override
     public int hashCode()
     {
-        throw new UnsupportedOperationException("not implemented");
+        // TODO make this sensible.
+        return 0;
     }
 
     /** Converts the path to a string.
@@ -280,28 +247,27 @@ public class Path implements Iterable<String>, Serializable
         @return The string representation of the path.
      */
     @Override
-    public String toString()
+    public synchronized String toString()
     {
-        List <String> components = new ArrayList <String> ();
+        assert ((pathPrefix == null && pathComponent.equals ("")) ^
+                (pathPrefix != null && !pathComponent.equals ("")));
 
-        components.add (pathComponent);
-
-        for (Path p = pathPrefix; p != null; p = p.pathPrefix) {
-            components.add (0, p.pathComponent);
+        if (pathPrefix == null && pathComponent.equals ("")) {
+            return "/";
         }
 
-        String res = "/";
-
-        for (int i = 0; i < components.size (); i++) {
-            res += components.get (i);
-        }
-
-        synchronized ("A") {
-            System.out.println ("The path component is: " + pathComponent);
-            System.out.println ("My guess is: " + res);
-            System.out.println ("Debug says: " + debug);
-        }
-
-        return res;
+        return pathPrefix.toString () + "/" + pathComponent;
     }
+
+    /** Checks to see if a <code>String</code> is a valid component of a path.
+        
+        @param p is a component's name to check
+        @return <code>true</code> if and only if <code>p</code> doesn't contain
+            <code>""</code> or <code>"/"</code>
+    */
+    private boolean isValid (String p)
+    {
+        return p.indexOf (":") == -1 && p.indexOf (SEPARATOR) == -1 && !p.equals ("");
+    }
+
 }
