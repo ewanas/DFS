@@ -70,6 +70,8 @@ public class Path implements Iterable<String>, Serializable
         if (path != null && path.indexOf (SEPARATOR) == 0) {
             path = path.substring (1);
 
+            pathPrefix = new Path ();
+
             components = path.split (SEPARATOR);
 
             if (components.length >= 1) {
@@ -128,7 +130,8 @@ public class Path implements Iterable<String>, Serializable
      */
     public static Path[] list(File directory) throws FileNotFoundException
     {
-        List <Path> contents = new ArrayList <Path> ();
+        List <Path> contents    = new ArrayList <Path> ();
+        int         length      = directory.toString ().length ();
 
         if (!directory.exists ()) {
             throw new FileNotFoundException (
@@ -139,8 +142,22 @@ public class Path implements Iterable<String>, Serializable
                     "Not a directory"
                     );
         } else {
-            for (String file : directory.list ()) {
-                contents.add (new Path (directory.toString () + file));
+            Queue <File> files = new LinkedList <File> ();
+            files.add (directory);
+
+            while (!files.isEmpty ()) {
+                File currentFile = files.poll ();
+
+                if (currentFile.isDirectory ()) {
+                    for (File file : currentFile.listFiles ()) {
+                        files.add (file);
+                    }
+                } else {
+                    String relativePath =
+                        currentFile.toString ().substring (length);
+
+                    contents.add (new Path (relativePath));
+                }
             }
         }
 
@@ -235,7 +252,7 @@ public class Path implements Iterable<String>, Serializable
     public int hashCode()
     {
         // TODO make this sensible.
-        return 0;
+        return 10;
     }
 
     /** Converts the path to a string.
@@ -247,16 +264,19 @@ public class Path implements Iterable<String>, Serializable
         @return The string representation of the path.
      */
     @Override
-    public synchronized String toString()
+    public String toString()
     {
-        assert ((pathPrefix == null && pathComponent.equals ("")) ^
-                (pathPrefix != null && !pathComponent.equals ("")));
+        String pathStr = "/";
 
-        if (pathPrefix == null && pathComponent.equals ("")) {
-            return "/";
+        if (pathPrefix != null) {
+            if (pathPrefix.isRoot ()) {
+                pathStr = "/" + pathComponent;
+            } else {
+                pathStr = pathPrefix.toString () + "/" + pathComponent;
+            }
         }
 
-        return pathPrefix.toString () + "/" + pathComponent;
+        return pathStr;
     }
 
     /** Checks to see if a <code>String</code> is a valid component of a path.
