@@ -113,7 +113,7 @@ public class Path implements Iterable<String>, Serializable
         This iterator will not support <code>remove()</code>. It will throw an
         <code>UnsupportedOperationException</code>, in such cases.
     */
-    public class ComponentIterator implements Iterator <String>
+    private class ComponentIterator implements Iterator <String>
     {
         Iterator <String> listIterator;
 
