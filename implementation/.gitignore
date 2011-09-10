@@ -1,2 +1,5 @@
 *.class
 *.jar
+javadoc-all/
+tags
+../writeup/startercode/
