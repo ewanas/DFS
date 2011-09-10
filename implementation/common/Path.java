@@ -21,9 +21,6 @@ import java.util.*;
  */
 public class Path implements Iterable<String>, Serializable
 {
-    final String    SEPARATOR   =   "/";
-    final String    ROOT        =   "/";
-
     String      pathComponent   =   "";
     Path        pathPrefix;
 
@@ -67,12 +64,12 @@ public class Path implements Iterable<String>, Serializable
     {
         String [] components;
 
-        if (path != null && path.indexOf (SEPARATOR) == 0) {
+        if (path != null && path.indexOf ("/") == 0) {
             path = path.substring (1);
 
             pathPrefix = new Path ();
 
-            components = path.split (SEPARATOR);
+            components = path.split ("/");
 
             if (components.length >= 1) {
                 pathComponent = components [components.length - 1];
@@ -84,7 +81,7 @@ public class Path implements Iterable<String>, Serializable
                         pathPrefix = new Path (pathPrefix, component);
                     }
                 }
-            } else if (path.equals (ROOT)) {
+            } else if (path.equals ("/")) {
                 return;
             }
 
@@ -107,15 +104,67 @@ public class Path implements Iterable<String>, Serializable
     @Override
     public Iterator<String> iterator()
     {
-        List <String> components = new ArrayList <String> ();
+        return new ComponentIterator (this);
+    }
 
-        components.add (this.toString ());
+    /** The component String iterator.
+        
+        <p>
+        This iterator will not support <code>remove()</code>. It will throw an
+        <code>UnsupportedOperationException</code>, in such cases.
+    */
+    public class ComponentIterator implements Iterator <String>
+    {
+        Iterator <String> listIterator;
 
-        for (Path p = pathPrefix; p != null; p = p.pathPrefix) {
-            components.add (0, p.pathComponent.toString ());
+        /** Creates a new <code>ComponentIterator</code> that goes through
+            a list of path components.
+
+            @param path is a <code>Path</code> that this iterator will go
+                        through the components of.
+        */
+        public ComponentIterator (Path path)
+        {
+            List <String> components = new ArrayList <String> ();
+
+            for (Path p = path; p.pathPrefix != null; p = p.pathPrefix) {
+                components.add (0, p.pathComponent);
+            }
+
+            listIterator = components.iterator ();
         }
 
-        return components.iterator ();
+        /** Checks if there are more components in the path.
+            
+            @return true if there are more components.
+        */
+        public boolean hasNext ()
+        {
+            return listIterator.hasNext ();
+        }
+
+        /** Returns the next component in the path.
+
+            @throws NoSuchElementException if there are no more components
+                    in the path.
+            @return The next component in the path.
+        */
+        public String next ()
+        {
+            return listIterator.next ();
+        }
+
+        /** Method isn't implemented.
+
+            @throw UnsupportedOperationException Because this method isn't
+                                                 implemented.
+        */ 
+        public void remove ()
+        {
+            throw new UnsupportedOperationException (
+                    "Can't remove component using path component iterator"
+                    );
+        }
     }
 
     /** Lists the paths of all files in a directory tree on the local
@@ -287,7 +336,7 @@ public class Path implements Iterable<String>, Serializable
     */
     private boolean isValid (String p)
     {
-        return p.indexOf (":") == -1 && p.indexOf (SEPARATOR) == -1 && !p.equals ("");
+        return p.indexOf (":") == -1 && p.indexOf ("/") == -1 && !p.equals ("");
     }
 
 }
