@@ -1,6 +1,9 @@
 package rmi;
 
 import java.net.*;
+import java.lang.reflect.*;
+import java.util.*;
+import java.io.*;
 
 /** RMI skeleton
 
@@ -26,6 +29,9 @@ import java.net.*;
 */
 public class Skeleton<T>
 {
+    InetSocketAddress       address;
+    SkeletonServer<T>       skeletonServer;
+
     /** Creates a <code>Skeleton</code> with no initial server address. The
         address will be determined by the system when <code>start</code> is
         called. Equivalent to using <code>Skeleton(null)</code>.
@@ -47,7 +53,21 @@ public class Skeleton<T>
      */
     public Skeleton(Class<T> c, T server)
     {
-        throw new UnsupportedOperationException("not implemented");
+        if (c == null || server == null) {
+            throw new NullPointerException ("Null server or interface");
+        } else if (!isRemoteInterface (c)) {
+            throw new Error (c.getClass () +
+                    " does not implement a Remote interface"
+                    );
+        } else {
+            try {
+                this.address = new InetSocketAddress (
+                        InetAddress.getLocalHost (), 0
+                        );
+            } catch (UnknownHostException e) {
+                throw new Error ("Unknown host");
+            }
+        }
     }
 
     /** Creates a <code>Skeleton</code> with the given initial server address.
@@ -70,7 +90,38 @@ public class Skeleton<T>
      */
     public Skeleton(Class<T> c, T server, InetSocketAddress address)
     {
-        throw new UnsupportedOperationException("not implemented");
+        this (c, server);
+
+        if (address == null) {
+            throw new NullPointerException ("Null socket address provided");
+        }
+
+        this.address = address;
+    }
+
+    /** Checks if the given interface implements a remote interface.
+        
+        <p>
+        @param spec is the <code>Class</code> to inspect.
+        @return true if all methods of the interface <code>spec</code> throw an
+            RMIException.
+     */
+    private static boolean isRemoteInterface (Class spec)
+    {
+        if (!spec.isInterface ()) {
+            return false;
+        } else {
+            for (Method m : spec.getMethods ()) {
+                if (!Arrays.asList (m.getExceptionTypes ()).contains (
+                            RMIException.class)
+                   )
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     /** Called when the listening thread exits.
@@ -141,7 +192,18 @@ public class Skeleton<T>
      */
     public synchronized void start() throws RMIException
     {
-        throw new UnsupportedOperationException("not implemented");
+        if (skeletonServer != null) {
+            throw new RMIException (
+                    "Skeleton server for already running"
+                    );
+        } else {
+            try {
+                skeletonServer = new SkeletonServer<T> (this);
+                new Thread (skeletonServer).start ();
+            } catch (IOException e) {
+                throw new RMIException (e.getMessage ());
+            }
+        }
     }
 
     /** Stops the skeleton server, if it is already running.
@@ -155,6 +217,7 @@ public class Skeleton<T>
      */
     public synchronized void stop()
     {
-        throw new UnsupportedOperationException("not implemented");
+        skeletonServer.stop ();
+        stopped (null);
     }
 }

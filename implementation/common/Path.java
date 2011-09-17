@@ -35,7 +35,7 @@ public class Path implements Iterable<String>, Serializable
                                          separator, a colon, or
                                          <code>component</code> is the empty
                                          string.
-    */
+     */
     public Path(Path path, String component)
     {
         if (component == null || !isValid (component)) {
@@ -112,7 +112,7 @@ public class Path implements Iterable<String>, Serializable
         <p>
         This iterator will not support <code>remove()</code>. It will throw an
         <code>UnsupportedOperationException</code>, in such cases.
-    */
+     */
     private class ComponentIterator implements Iterator <String>
     {
         Iterator <String> listIterator;
@@ -122,7 +122,7 @@ public class Path implements Iterable<String>, Serializable
 
             @param path is a <code>Path</code> that this iterator will go
                         through the components of.
-        */
+         */
         public ComponentIterator (Path path)
         {
             List <String> components = new ArrayList <String> ();
@@ -137,7 +137,7 @@ public class Path implements Iterable<String>, Serializable
         /** Checks if there are more components in the path.
             
             @return true if there are more components.
-        */
+         */
         public boolean hasNext ()
         {
             return listIterator.hasNext ();
@@ -148,7 +148,7 @@ public class Path implements Iterable<String>, Serializable
             @throws NoSuchElementException if there are no more components
                     in the path.
             @return The next component in the path.
-        */
+         */
         public String next ()
         {
             return listIterator.next ();
@@ -158,7 +158,7 @@ public class Path implements Iterable<String>, Serializable
 
             @throw UnsupportedOperationException Because this method isn't
                                                  implemented.
-        */ 
+         */ 
         public void remove ()
         {
             throw new UnsupportedOperationException (
@@ -333,10 +333,12 @@ public class Path implements Iterable<String>, Serializable
         @param p is a component's name to check
         @return <code>true</code> if and only if <code>p</code> doesn't contain
             <code>""</code> or <code>"/"</code>
-    */
-    private boolean isValid (String p)
+     */
+    private static boolean isValid (String p)
     {
-        return p.indexOf (":") == -1 && p.indexOf ("/") == -1 && !p.equals ("");
+        return  p.indexOf (":") == -1 &&
+                p.indexOf ("/") == -1 &&
+                !p.equals ("");
     }
 
 }
