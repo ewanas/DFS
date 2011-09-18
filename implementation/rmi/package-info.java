@@ -72,3 +72,35 @@
     <code>create</code>.
  */
 package rmi;
+
+import java.lang.*;
+import java.lang.reflect.*;
+import java.util.*;
+
+class RMI
+{
+    /** Checks if the given interface implements a remote interface.
+        
+        <p>
+        @param spec is the <code>Class</code> to inspect.
+        @return true if all methods of the interface <code>spec</code> throw an
+            RMIException.
+     */
+    public static boolean isRemoteInterface (Class spec)
+    {
+        if (!spec.isInterface ()) {
+            return false;
+        } else {
+            for (Method m : spec.getMethods ()) {
+                if (!Arrays.asList (m.getExceptionTypes ()).contains (
+                            RMIException.class)
+                   )
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+}

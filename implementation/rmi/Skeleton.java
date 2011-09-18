@@ -55,7 +55,7 @@ public class Skeleton<T>
     {
         if (c == null || server == null) {
             throw new NullPointerException ("Null server or interface");
-        } else if (!isRemoteInterface (c)) {
+        } else if (!RMI.isRemoteInterface (c)) {
             throw new Error (c.getClass () +
                     " does not implement a Remote interface"
                     );
@@ -99,31 +99,6 @@ public class Skeleton<T>
         this.address = address;
     }
 
-    /** Checks if the given interface implements a remote interface.
-        
-        <p>
-        @param spec is the <code>Class</code> to inspect.
-        @return true if all methods of the interface <code>spec</code> throw an
-            RMIException.
-     */
-    private static boolean isRemoteInterface (Class spec)
-    {
-        if (!spec.isInterface ()) {
-            return false;
-        } else {
-            for (Method m : spec.getMethods ()) {
-                if (!Arrays.asList (m.getExceptionTypes ()).contains (
-                            RMIException.class)
-                   )
-                {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
     /** Called when the listening thread exits.
 
         <p>
@@ -163,7 +138,7 @@ public class Skeleton<T>
      */
     protected boolean listen_error(Exception exception)
     {
-        return false;
+        return exception != null;
     }
 
     /** Called when an exception occurs at the top level in a service thread.

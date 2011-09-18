@@ -48,7 +48,25 @@ public abstract class Stub
     public static <T> T create(Class<T> c, Skeleton<T> skeleton)
         throws UnknownHostException
     {
-        throw new UnsupportedOperationException("not implemented");
+        InetAddress skeletonAddress;
+
+        if (c == null || skeleton == null) {
+            throw new NullPointerException ("Failed to create stub");
+        } else if (skeleton.address == null || skeleton.skeletonServer == null) {
+            throw new IllegalStateException (
+                    "Server not started yet"
+                    );
+        } else if (!RMI.isRemoteInterface (c)) {
+            throw new Error (
+                    c.getName () + " doesn't describe a remote interface"
+                    );
+        } else {
+            skeletonAddress = skeleton.address.getLocalHost ();
+        }
+
+        // Create the stub here.
+
+        return null;
     }
 
     /** Creates a stub, given a skeleton with an assigned address and a hostname
@@ -84,7 +102,23 @@ public abstract class Stub
     public static <T> T create(Class<T> c, Skeleton<T> skeleton,
                                String hostname)
     {
-        throw new UnsupportedOperationException("not implemented");
+        InetAddress skeletonAddress;
+
+        if (c == null || skeleton == null || hostname == null) {
+            throw new NullPointerException ("Failed to create stub");
+        } if (skeleton.address == null || skeleton.skeletonServer == null) {
+            throw new IllegalStateException (
+                    "Server not started yet"
+                    );
+        } else if (!RMI.isRemoteInterface (c)) {
+            throw new Error (
+                    c.getName () + " doesn't describe a remote interface"
+                    );
+        }
+
+        // Create the stub here.
+
+        return null;
     }
 
     /** Creates a stub, given the address of a remote server.
@@ -106,6 +140,7 @@ public abstract class Stub
      */
     public static <T> T create(Class<T> c, InetSocketAddress address)
     {
-        throw new UnsupportedOperationException("not implemented");
+        return null;
+        // throw new UnsupportedOperationException("not implemented");
     }
 }
