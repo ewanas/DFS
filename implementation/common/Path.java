@@ -279,7 +279,7 @@ public class Path implements Iterable<String>, Serializable
      */
     public File toFile(File root)
     {
-        throw new UnsupportedOperationException("not implemented");
+        throw new UnsupportedOperationException ("");
     }
 
     /** Compares two paths for equality.
@@ -300,8 +300,7 @@ public class Path implements Iterable<String>, Serializable
     @Override
     public int hashCode()
     {
-        // TODO make this sensible.
-        return 10;
+        return pathComponent.hashCode () << (pathPrefix == null ? 7 : 8);
     }
 
     /** Converts the path to a string.

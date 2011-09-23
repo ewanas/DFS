@@ -61,9 +61,13 @@ public class Skeleton<T>
                     );
         } else {
             try {
+                // this.address = new InetSocketAddress (
+                        // InetAddress.getLocalHost (), 0
+                        // );
                 this.address = new InetSocketAddress (
-                        InetAddress.getLocalHost (), 0
+                        "localhost", 0
                         );
+                throw new UnknownHostException ("REMOVE THIS");
             } catch (UnknownHostException e) {
                 throw new Error ("Unknown host");
             }
