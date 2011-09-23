@@ -1,6 +1,7 @@
 package rmi;
 
 import java.net.*;
+import java.util.logging.*;
 
 class SkeletonConnection <T> implements Runnable
 {
@@ -9,6 +10,10 @@ class SkeletonConnection <T> implements Runnable
     public SkeletonConnection (Socket connection)
     {
         clientSocket = connection;
+        RMI.logger.publish (new LogRecord (
+                    Level.INFO,
+                    "Accepting a new connection on" + connection
+                    ));
     }
 
     @Override

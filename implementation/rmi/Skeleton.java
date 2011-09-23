@@ -63,7 +63,7 @@ public class Skeleton<T>
         } else {
             try {
                 this.address = new InetSocketAddress (
-                        InetAddress.getByAddress (new byte [] {127, 0, 0, 1}), 0
+                        InetAddress.getLocalHost (), 0
                         );
             } catch (UnknownHostException e) {
                 throw new Error (e.getMessage ());
@@ -72,8 +72,7 @@ public class Skeleton<T>
 
         RMI.logger.publish (new LogRecord (
                     Level.FINE,
-                    "Created a new Skeleton that will serve classes of type" +
-                    c.getName ()
+                    "Created a new Skeleton with no specific port"
                     ));
     }
 
@@ -99,16 +98,28 @@ public class Skeleton<T>
     {
         this (c, server);
 
-        if (address == null) {
+        if (c == null || server == null) {
+            throw new NullPointerException ("Null server or interface");
+        } else if (!RMI.isRemoteInterface (c)) {
+            throw new Error (c.getClass () +
+                    " does not implement a Remote interface"
+                    );
+        } else if (address == null) {
             throw new NullPointerException ("Null socket address provided");
+        } else {
+            try {
+                this.address = new InetSocketAddress (
+                        InetAddress.getLocalHost (),
+                        address.getPort ()
+                        );
+            } catch (UnknownHostException e) {
+                throw new Error (e.getMessage ());
+            }
         }
-
-        this.address = address;
 
         RMI.logger.publish (new LogRecord (
                     Level.FINE,
-                    "Created a new Skeleton that will serve classes of type " +
-                    c.getName () + "Which listens at address " + this.address
+                    "Created a new Skeleton that will listen on " + address
                     ));
     }
 
@@ -132,6 +143,12 @@ public class Skeleton<T>
      */
     protected void stopped(Throwable cause)
     {
+        cause.printStackTrace ();
+
+        RMI.logger.publish (new LogRecord (
+                    Level.INFO,
+                    "Stopping the Skeleton at " + address + cause.getMessage ()
+                    ));
     }
 
     /** Called when an exception occurs at the top level in the listening
@@ -151,6 +168,11 @@ public class Skeleton<T>
      */
     protected boolean listen_error(Exception exception)
     {
+        RMI.logger.publish (new LogRecord (
+                    Level.INFO,
+                    "Error" + exception.getMessage ())
+                );
+
         return exception != null;
     }
 
@@ -182,7 +204,7 @@ public class Skeleton<T>
     {
         if (skeletonServer != null) {
             throw new RMIException (
-                    "Skeleton server for already running"
+                    "Skeleton server is already running"
                     );
         } else {
             try {
@@ -195,7 +217,7 @@ public class Skeleton<T>
         
         RMI.logger.publish (new LogRecord (
                     Level.INFO,
-                    "Started the Skeleton"
+                    "Started the Skeleton at " + address
                     ));
     }
 
@@ -210,6 +232,11 @@ public class Skeleton<T>
      */
     public synchronized void stop()
     {
+        RMI.logger.publish (new LogRecord (
+                    Level.INFO,
+                    "Stopping the server at " + address
+                    ));
+
         skeletonServer.stop ();
         stopped (null);
     }

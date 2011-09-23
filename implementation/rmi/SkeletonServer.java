@@ -3,6 +3,7 @@ package rmi;
 import java.net.*;
 import java.io.*;
 import java.util.concurrent.*;
+import java.util.logging.*;
 
 /** Represents the top level server for implementations of <code>T</code>.
  */
@@ -27,22 +28,39 @@ class SkeletonServer<T> implements Runnable
         server.bind (parent.address);
 
         clientPool = Executors.newCachedThreadPool ();
+
+        RMI.logger.publish (new LogRecord (
+                    Level.INFO,
+                    "Skeleton Server initialized"
+                    ));
     }
 
     /** Runs the server and listens for new connections.  */
     @Override
     public void run ()
     {
+        RMI.logger.publish (new LogRecord (
+                    Level.INFO,
+                    "Skeleton listening on " + server
+                    ));
         try {
-            while (server != null) {
+            while (server != null && !stopped) {
                 clientPool.execute (
                         new SkeletonConnection <T> (server.accept ())
                         );
             }
+
+            RMI.logger.publish (new LogRecord (
+                        Level.INFO,
+                        "Server stopped gracefully"
+                        ));
         } catch (IOException e) {
-            if (!stopped) {
-                parent.listen_error (e);
-            }
+            RMI.logger.publish (new LogRecord (
+                        Level.INFO,
+                        "Server stopped abnormally" + e.getMessage ()
+                        ));
+
+            parent.listen_error (e);
         }
     }
 
