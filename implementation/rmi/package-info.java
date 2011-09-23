@@ -76,9 +76,13 @@ package rmi;
 import java.lang.*;
 import java.lang.reflect.*;
 import java.util.*;
+import java.util.logging.*;
 
 class RMI
 {
+    // The internal logger for all RMI events
+    static ConsoleHandler   logger = new ConsoleHandler ();
+
     /** Checks if the given interface implements a remote interface.
         
         <p>
