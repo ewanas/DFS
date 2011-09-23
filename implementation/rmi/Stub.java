@@ -1,6 +1,13 @@
 package rmi;
 
-import java.net.*;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
+import java.lang.reflect.*;
+import java.io.*;
+import java.util.logging.*;
 
 /** RMI stub factory.
 
@@ -48,7 +55,8 @@ public abstract class Stub
     public static <T> T create(Class<T> c, Skeleton<T> skeleton)
         throws UnknownHostException
     {
-        InetAddress skeletonAddress;
+        InetSocketAddress       skeletonAddress;
+        StubHandler             handler;
 
         if (c == null || skeleton == null) {
             throw new NullPointerException ("Failed to create stub");
@@ -60,13 +68,19 @@ public abstract class Stub
             throw new Error (
                     c.getName () + " doesn't describe a remote interface"
                     );
-        } else {
-            skeletonAddress = skeleton.address.getAddress ();
         }
 
-        // Create the stub here.
+        // Create the proxy here.
+        skeletonAddress = skeleton.address;
+        handler = new StubHandler (skeletonAddress);
 
-        return null;
+        T stub = (T)Proxy.newProxyInstance (
+                c.getClassLoader (),
+                new Class [] {c},
+                handler
+                );
+
+        return stub;
     }
 
     /** Creates a stub, given a skeleton with an assigned address and a hostname
@@ -102,7 +116,8 @@ public abstract class Stub
     public static <T> T create(Class<T> c, Skeleton<T> skeleton,
                                String hostname)
     {
-        InetAddress skeletonAddress;
+        InetSocketAddress       skeletonAddress;
+        StubHandler             handler;
 
         if (c == null || skeleton == null || hostname == null) {
             throw new NullPointerException ("Failed to create stub");
@@ -116,9 +131,25 @@ public abstract class Stub
                     );
         }
 
-        // Create the stub here.
+        // Create the proxy here.
+        try {
+            skeletonAddress = new InetSocketAddress (
+                    InetAddress.getByName (hostname),
+                    skeleton.address.getPort ()
+                    );
+        } catch (UnknownHostException e) {
+            throw new Error (e); //TODO Check if that's the proper way
+        }
 
-        return null;
+        handler = new StubHandler (skeletonAddress);
+
+        T stub = (T)Proxy.newProxyInstance (
+                c.getClassLoader (),
+                new Class [] {c},
+                handler
+                );
+
+        return stub;
     }
 
     /** Creates a stub, given the address of a remote server.
@@ -140,7 +171,148 @@ public abstract class Stub
      */
     public static <T> T create(Class<T> c, InetSocketAddress address)
     {
-        return null;
-        // throw new UnsupportedOperationException("not implemented");
+        InetSocketAddress       skeletonAddress;
+        StubHandler             handler;
+
+        if (c == null || address == null) {
+            throw new NullPointerException ("Failed to create stub");
+        } else if (!RMI.isRemoteInterface (c)) {
+            throw new Error (
+                    c.getName () + " doesn't describe a remote interface"
+                    );
+        }
+
+        // Create the proxy here.
+        skeletonAddress = address;
+        handler = new StubHandler (skeletonAddress);
+
+        T stub = (T)Proxy.newProxyInstance (
+                c.getClassLoader (),
+                new Class [] {c},
+                handler
+                );
+
+        return stub;
+    }
+
+    /** The proxy for all methods invoked on a stub.
+
+        <p>
+        This is responsible for connecting to the <code>Skeleton</code> and
+        forwarding all method invocations on the stub to it.
+     */
+    private static class StubHandler implements InvocationHandler
+    {
+        InetSocketAddress     address;
+
+        /** Configures the proxy to forward method invocations to a specific
+            address.
+
+            @param skeletonAddress Is the address to marshal methods and the
+                                   arguments to.
+          */
+        public StubHandler (InetSocketAddress skeletonAddress)
+        {
+            address = skeletonAddress;
+        }
+
+        /** Marshals the arguments and the methods name off to the
+            <code>Skeleton</code>.
+
+            <p>
+            @throws RMIException If a connection with the <code>Skeleton</code>
+                                 could not be established or if it was thrown
+                                 by the method.
+            @return The result of the RMI.
+            @param stub Is the instance implementing an interface that this
+                        <code>StubHandler</code> is a proxy for.
+            @param call Is the method being called on the stub.
+            @param args Are the arguments to the method being called.
+         */
+        public Object invoke (Object stub, Method call, Object [] args)
+            throws RMIException
+        {
+            Socket  connection = new Socket ();
+
+            Object []   toInvoke = new Object [] {call, args};
+            Object      result = null;
+
+            ObjectOutputStream  toServer;
+            ObjectInputStream   fromServer;
+
+            RMI.logger.publish (new LogRecord (
+                        Level.INFO,
+                        "Calling method " + call.getName ()
+                        ));
+
+            if (call.getName ().equals ("equals") && args.length == 1) {
+                if (args [0] == null) {
+                    result = false;
+                } else {
+                    result = Proxy.getInvocationHandler (stub).equals (
+                            Proxy.getInvocationHandler (args[0])
+                            );
+                }
+            } else if (call.getName ().equals ("hashCode") && args == null) {
+                result = Proxy.getInvocationHandler (stub).hashCode ();
+            } else if (call.getName ().equals ("toString") && args == null) {
+                result = Proxy.getInvocationHandler (stub).toString ();
+            } else {
+                try {
+                    connection.connect (address);
+                    toServer = new ObjectOutputStream (
+                            connection.getOutputStream ()
+                            );
+                    fromServer = new ObjectInputStream (
+                            connection.getInputStream ()
+                            );
+
+                    toServer.writeObject (toInvoke);
+
+                    result = fromServer.readObject ();
+                } catch (Exception e) {
+                    throw new RMIException (e.getMessage ());
+                }
+            }
+
+            return result;
+        }
+
+        /** Two <code>StubHandler</code>'s are equal if they refer to the same
+            <code>Skeleton</code> address.
+
+            <p>
+            @param other Is the other <code>StubHandler</code> to test for
+                         equality with.
+            @return false If <code>other</code> is <code>null</code>
+                          or if <code>other</code> is not an instance of
+                          <code>StubHandler</code> or if they refer to
+                          different <code>Skeleton</code> addresses.
+         */
+        public boolean equals (Object other)
+        {
+            if (other != null && other instanceof StubHandler) {
+                return ((StubHandler)other).address.equals (address);
+            }
+
+            return false;
+        }
+
+        /** A hash for <code>StubHandler</code>s.
+
+            @return A hash that has the same distribution as
+                    <code>InetSocketAddress</code> hashCode
+         */
+        public int hashCode ()
+        {
+            return address.hashCode ();
+        }
+
+        /** Returns a string representation for the <code>StubHandler</code>.
+         */
+        public String toString ()
+        {
+            return address.toString ();
+        }
     }
 }

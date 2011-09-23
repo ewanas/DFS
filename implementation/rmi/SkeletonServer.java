@@ -57,7 +57,7 @@ class SkeletonServer<T> implements Runnable
         } catch (IOException e) {
             RMI.logger.publish (new LogRecord (
                         Level.INFO,
-                        "Server stopped abnormally" + e.getMessage ()
+                        "Server stopped abnormally " + e.getMessage ()
                         ));
 
             parent.listen_error (e);
