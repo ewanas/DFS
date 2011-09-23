@@ -61,7 +61,7 @@ public abstract class Stub
                     c.getName () + " doesn't describe a remote interface"
                     );
         } else {
-            skeletonAddress = skeleton.address.getLocalHost ();
+            skeletonAddress = skeleton.address.getAddress ();
         }
 
         // Create the stub here.

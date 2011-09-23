@@ -4,6 +4,7 @@ import java.net.*;
 import java.lang.reflect.*;
 import java.util.*;
 import java.io.*;
+import java.util.logging.*;
 
 /** RMI skeleton
 
@@ -62,12 +63,18 @@ public class Skeleton<T>
         } else {
             try {
                 this.address = new InetSocketAddress (
-                        InetAddress.getLocalHost (), 0
+                        InetAddress.getByAddress (new byte [] {127, 0, 0, 1}), 0
                         );
             } catch (UnknownHostException e) {
-                throw new Error ("Unknown host");
+                throw new Error (e.getMessage ());
             }
         }
+
+        RMI.logger.publish (new LogRecord (
+                    Level.FINE,
+                    "Created a new Skeleton that will serve classes of type" +
+                    c.getName ()
+                    ));
     }
 
     /** Creates a <code>Skeleton</code> with the given initial server address.
@@ -97,6 +104,12 @@ public class Skeleton<T>
         }
 
         this.address = address;
+
+        RMI.logger.publish (new LogRecord (
+                    Level.FINE,
+                    "Created a new Skeleton that will serve classes of type " +
+                    c.getName () + "Which listens at address " + this.address
+                    ));
     }
 
     /** Called when the listening thread exits.
@@ -179,6 +192,11 @@ public class Skeleton<T>
                 throw new RMIException (e.getMessage ());
             }
         }
+        
+        RMI.logger.publish (new LogRecord (
+                    Level.INFO,
+                    "Started the Skeleton"
+                    ));
     }
 
     /** Stops the skeleton server, if it is already running.
