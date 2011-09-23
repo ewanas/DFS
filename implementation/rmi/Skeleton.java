@@ -143,12 +143,12 @@ public class Skeleton<T>
      */
     protected void stopped(Throwable cause)
     {
-        cause.printStackTrace ();
-
-        RMI.logger.publish (new LogRecord (
-                    Level.INFO,
-                    "Stopping the Skeleton at " + address + cause.getMessage ()
-                    ));
+        if (cause != null) {
+            RMI.logger.publish (new LogRecord (
+                        Level.INFO,
+                        "Stopping the Skeleton at " + address + cause.getMessage ()
+                        ));
+        }
     }
 
     /** Called when an exception occurs at the top level in the listening
