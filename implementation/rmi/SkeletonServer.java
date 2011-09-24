@@ -13,21 +13,27 @@ class SkeletonServer<T> implements Runnable
     private Skeleton <T>    parent;
     private ExecutorService clientPool;
     private boolean         stopped = false;
+    private Class<T>        implementation;
 
     /** Creates a new <code>SkeletonServer</code> that is bound to the
         specified <code>InetSocketAddress</code>.
 
-        @throws IOException when it fails to create the socket or bind it.
+        <p>
+        @throws IOException When it fails to create the socket or bind it.
+        @param parent Is the <code>Skeleton</code> for which this server
+                      accepts method invocations.
+        @param c Is the implementation of <code>T</code> that the RMIs will
+                 act on.
      */
-    public SkeletonServer (Skeleton <T> parent) throws IOException
+    public SkeletonServer (Skeleton <T> parent, Class<T> c) throws IOException
     {
         this.parent = parent;
-
         server = new ServerSocket ();
-
         server.bind (parent.address);
 
         clientPool = Executors.newCachedThreadPool ();
+
+        implementation = c;
 
         RMI.logger.publish (new LogRecord (
                     Level.INFO,
@@ -46,8 +52,11 @@ class SkeletonServer<T> implements Runnable
         try {
             while (server != null && !stopped) {
                 clientPool.execute (
-                        new SkeletonConnection <T> (server.accept ())
-                        );
+                        new SkeletonConnection <T> (
+                            server.accept (),
+                            implementation,
+                            this
+                            ));
             }
 
             RMI.logger.publish (new LogRecord (
@@ -73,5 +82,11 @@ class SkeletonServer<T> implements Runnable
         } catch (IOException e) {
             stopped = false;
         }
+    }
+
+    /** Called by connections to let the server report any errors. */
+    public void listen_error (Exception e)
+    {
+        parent.listen_error (e);
     }
 }

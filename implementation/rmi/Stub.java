@@ -270,6 +270,7 @@ public abstract class Stub
                     toServer.writeObject (toInvoke);
 
                     result = fromServer.readObject ();
+                    connection.close ();
                 } catch (Exception e) {
                     throw new RMIException (e.getMessage ());
                 }

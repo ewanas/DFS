@@ -32,6 +32,7 @@ public class Skeleton<T>
 {
     InetSocketAddress       address;
     SkeletonServer<T>       skeletonServer;
+    Class<T>                implementation;
 
     /** Creates a <code>Skeleton</code> with no initial server address. The
         address will be determined by the system when <code>start</code> is
@@ -70,6 +71,8 @@ public class Skeleton<T>
             }
         }
 
+        implementation = c;
+
         RMI.logger.publish (new LogRecord (
                     Level.FINE,
                     "Created a new Skeleton with no specific port"
@@ -96,8 +99,6 @@ public class Skeleton<T>
      */
     public Skeleton(Class<T> c, T server, InetSocketAddress address)
     {
-        this (c, server);
-
         if (c == null || server == null) {
             throw new NullPointerException ("Null server or interface");
         } else if (!RMI.isRemoteInterface (c)) {
@@ -116,6 +117,8 @@ public class Skeleton<T>
                 throw new Error (e.getMessage ());
             }
         }
+
+        implementation = c;
 
         RMI.logger.publish (new LogRecord (
                     Level.FINE,
@@ -146,7 +149,8 @@ public class Skeleton<T>
         if (cause != null) {
             RMI.logger.publish (new LogRecord (
                         Level.INFO,
-                        "Stopping the Skeleton at " + address + cause.getMessage ()
+                        "Stopping the Skeleton at " + address +
+                        cause.getMessage ()
                         ));
         }
     }
@@ -208,7 +212,7 @@ public class Skeleton<T>
                     );
         } else {
             try {
-                skeletonServer = new SkeletonServer<T> (this);
+                skeletonServer = new SkeletonServer<T> (this, this.implementation);
                 new Thread (skeletonServer).start ();
             } catch (IOException e) {
                 throw new RMIException (e.getMessage ());
