@@ -9,6 +9,8 @@ import java.lang.reflect.*;
 import java.io.*;
 import java.util.logging.*;
 
+import java.util.*;
+
 /** RMI stub factory.
 
     <p>
@@ -72,7 +74,7 @@ public abstract class Stub
 
         // Create the proxy here.
         skeletonAddress = skeleton.address;
-        handler = new StubHandler (skeletonAddress);
+        handler = new StubHandler <T> (skeletonAddress, c);
 
         T stub = (T)Proxy.newProxyInstance (
                 c.getClassLoader (),
@@ -141,7 +143,7 @@ public abstract class Stub
             throw new Error (e); //TODO Check if that's the proper way
         }
 
-        handler = new StubHandler (skeletonAddress);
+        handler = new StubHandler (skeletonAddress, c);
 
         T stub = (T)Proxy.newProxyInstance (
                 c.getClassLoader (),
@@ -184,7 +186,7 @@ public abstract class Stub
 
         // Create the proxy here.
         skeletonAddress = address;
-        handler = new StubHandler (skeletonAddress);
+        handler = new StubHandler (skeletonAddress, c);
 
         T stub = (T)Proxy.newProxyInstance (
                 c.getClassLoader (),
@@ -201,9 +203,10 @@ public abstract class Stub
         This is responsible for connecting to the <code>Skeleton</code> and
         forwarding all method invocations on the stub to it.
      */
-    private static class StubHandler implements InvocationHandler
+    private static class StubHandler<T> implements InvocationHandler
     {
-        InetSocketAddress     address;
+        InetSocketAddress   address;
+        Class <T>           remoteInterface;
 
         /** Configures the proxy to forward method invocations to a specific
             address.
@@ -211,9 +214,10 @@ public abstract class Stub
             @param skeletonAddress Is the address to marshal methods and the
                                    arguments to.
           */
-        public StubHandler (InetSocketAddress skeletonAddress)
+        public StubHandler (InetSocketAddress skeletonAddress, Class <T> c)
         {
             address = skeletonAddress;
+            this.remoteInterface = remoteInterface;
         }
 
         /** Marshals the arguments and the methods name off to the
@@ -232,9 +236,9 @@ public abstract class Stub
         public Object invoke (Object stub, Method call, Object [] args)
             throws RMIException
         {
-            Socket  connection = new Socket ();
-
-            Object []   toInvoke = new Object [] {call, args};
+            Socket      connection = new Socket ();
+            Object []   toInvoke = new Object [] {new RMI.SerializedMethod (call),
+                                                  args};
             Object      result = null;
 
             ObjectOutputStream  toServer;
@@ -260,6 +264,7 @@ public abstract class Stub
             } else {
                 try {
                     connection.connect (address);
+
                     toServer = new ObjectOutputStream (
                             connection.getOutputStream ()
                             );
@@ -269,18 +274,37 @@ public abstract class Stub
 
                     toServer.writeObject (toInvoke);
 
+                    RMI.logger.publish (new LogRecord (
+                                Level.INFO,
+                                "Sent invocation to Skeleton"
+                                ));
+
                     result = fromServer.readObject ();
                     connection.close ();
-                } catch (Exception e) {
+                } catch (IOException e) {
+                    RMI.logger.publish (new LogRecord (
+                                Level.SEVERE,
+                                "IOException on connection with " + address +
+                                " : " + e.getMessage ()
+                                ));
+
                     throw new RMIException (e.getMessage ());
-                }
+                } catch (ClassNotFoundException e) {
+                    RMI.logger.publish (new LogRecord (
+                                Level.SEVERE,
+                                "ClassNotFoundException: " + e.getMessage ()
+                                ));
+
+                    throw new RMIException (e.getMessage ());
+                } 
             }
 
             return result;
         }
 
         /** Two <code>StubHandler</code>'s are equal if they refer to the same
-            <code>Skeleton</code> address.
+            <code>Skeleton</code> address and they implement the same remote
+            interface.
 
             <p>
             @param other Is the other <code>StubHandler</code> to test for
@@ -293,6 +317,17 @@ public abstract class Stub
         public boolean equals (Object other)
         {
             if (other != null && other instanceof StubHandler) {
+                Set <Method> myMethods = new HashSet <Method> ();
+                myMethods.addAll (
+                        Arrays.asList (this.getClass ().getMethods ())
+                        );
+
+                for (Method m : other.getClass ().getMethods ()) {
+                    if (!myMethods.contains (m)) {
+                        return false;
+                    }
+                }
+
                 return ((StubHandler)other).address.equals (address);
             }
 

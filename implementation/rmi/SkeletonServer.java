@@ -13,7 +13,7 @@ class SkeletonServer<T> implements Runnable
     private Skeleton <T>    parent;
     private ExecutorService clientPool;
     private boolean         stopped = false;
-    private Class<T>        implementation;
+    private T               implementation;
 
     /** Creates a new <code>SkeletonServer</code> that is bound to the
         specified <code>InetSocketAddress</code>.
@@ -25,7 +25,7 @@ class SkeletonServer<T> implements Runnable
         @param c Is the implementation of <code>T</code> that the RMIs will
                  act on.
      */
-    public SkeletonServer (Skeleton <T> parent, Class<T> c) throws IOException
+    public SkeletonServer (Skeleton <T> parent, T c) throws IOException
     {
         this.parent = parent;
         server = new ServerSocket ();

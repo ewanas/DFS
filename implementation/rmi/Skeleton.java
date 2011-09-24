@@ -32,7 +32,7 @@ public class Skeleton<T>
 {
     InetSocketAddress       address;
     SkeletonServer<T>       skeletonServer;
-    Class<T>                implementation;
+    T                       implementation;
 
     /** Creates a <code>Skeleton</code> with no initial server address. The
         address will be determined by the system when <code>start</code> is
@@ -71,7 +71,7 @@ public class Skeleton<T>
             }
         }
 
-        implementation = c;
+        implementation = server;
 
         RMI.logger.publish (new LogRecord (
                     Level.FINE,
@@ -118,7 +118,7 @@ public class Skeleton<T>
             }
         }
 
-        implementation = c;
+        implementation = server;
 
         RMI.logger.publish (new LogRecord (
                     Level.FINE,

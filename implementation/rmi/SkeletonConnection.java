@@ -10,12 +10,12 @@ import java.util.*;
 class SkeletonConnection <T> implements Runnable
 {
     Socket              clientSocket;
-    Class<T>            implementation;
+    T                   implementation;
     SkeletonServer<T>   server;
 
     public SkeletonConnection (
             Socket connection,
-            Class<T> implementation,
+            T implementation,
             SkeletonServer<T> server
             )
     {
@@ -32,20 +32,41 @@ class SkeletonConnection <T> implements Runnable
     @Override
     public void run ()
     {
-        ObjectInputStream   stubCall;
-        ObjectOutputStream  result;
+        ObjectInputStream       stubCall;
+        ObjectOutputStream      result;
 
-        Method              method;
-        Object[]            args;
+        Method                  method = null;
+        Object[]                args;
+
+        RMI.SerializedMethod    methodName = null;
 
         try {
+            // Setup the object streams which, by default, flushes the streams
             stubCall = new ObjectInputStream (clientSocket.getInputStream ());
             result = new ObjectOutputStream (clientSocket.getOutputStream ());
 
             Object invocation = stubCall.readObject ();
 
-            method  = ((Method)((Object [])invocation)[0]);
-            args    = ((Object [])((Object [])invocation)[1]);
+            methodName = (RMI.SerializedMethod)((Object [])invocation)[0];
+            RMI.logger.publish (new LogRecord (
+                        Level.INFO,
+                        "Trying to execute " + methodName
+                        ));
+
+            method = RMI.SerializedMethod.findMethod (
+                    implementation.getClass (),
+                    methodName
+                    );
+
+            if (method == null) {
+                RMI.logger.publish (new LogRecord (
+                            Level.SEVERE,
+                            "Failed to find " + methodName
+                            ));
+                throw new NoSuchMethodException (methodName.toString ());
+            }
+
+            args = ((Object [])((Object [])invocation)[1]);
 
             RMI.logger.publish (new LogRecord (
                         Level.INFO,
@@ -53,14 +74,20 @@ class SkeletonConnection <T> implements Runnable
                         " with arguments " + Arrays.asList (args)
                         ));
 
-            result.writeObject (method.invoke (implementation, args));
+            result.writeObject (method.invoke (
+                        implementation,
+                        args
+                        ));
+
             clientSocket.close ();
         } catch (Exception e) {
+            RMI.logger.publish (new LogRecord (
+                        Level.SEVERE,
+                        "Failed to execute method, on the remote side: " +
+                        e.getMessage ()
+                        ));
+            e.printStackTrace ();
             server.listen_error (e);
         }
-
-        // TODO
-        // Should unmarshal arguments and execute the respective function on T
-        // Then forward the result back to the client
     }
 }
