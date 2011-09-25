@@ -234,7 +234,7 @@ public abstract class Stub
             @param args Are the arguments to the method being called.
          */
         public Object invoke (Object stub, Method call, Object [] args)
-            throws RMIException, Throwable 
+            throws RMIException, Exception
         {
             Socket      connection = new Socket ();
             Object []   toInvoke =
@@ -285,7 +285,8 @@ public abstract class Stub
                     connection.close ();
 
                     if (result instanceof InvocationTargetException) {
-                        throw ((InvocationTargetException)result).getCause ();
+                        ((InvocationTargetException)result).getCause ().printStackTrace ();
+                        throw (Exception)(((InvocationTargetException)result).getCause ());
                     }
                 } catch (IOException e) {
                     RMI.logger.publish (new LogRecord (

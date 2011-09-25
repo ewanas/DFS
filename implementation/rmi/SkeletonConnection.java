@@ -111,7 +111,6 @@ class SkeletonConnection <T> implements Runnable
             invocationResult = method.invoke (implementation, args);
         } catch (InvocationTargetException e) {
             invocationResult = e;
-            e.printStackTrace ();
             RMI.logger.publish (new LogRecord (
                         Level.SEVERE,
                         "Exception in call:\n" + e.getMessage ()
