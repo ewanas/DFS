@@ -234,11 +234,12 @@ public abstract class Stub
             @param args Are the arguments to the method being called.
          */
         public Object invoke (Object stub, Method call, Object [] args)
-            throws RMIException
+            throws RMIException, Throwable 
         {
             Socket      connection = new Socket ();
-            Object []   toInvoke = new Object [] {new RMI.SerializedMethod (call),
-                                                  args};
+            Object []   toInvoke =
+                new Object [] {new RMI.SerializedMethod (call), args};
+
             Object      result = null;
 
             ObjectOutputStream  toServer;
@@ -280,7 +281,12 @@ public abstract class Stub
                                 ));
 
                     result = fromServer.readObject ();
+
                     connection.close ();
+
+                    if (result instanceof InvocationTargetException) {
+                        throw ((InvocationTargetException)result).getCause ();
+                    }
                 } catch (IOException e) {
                     RMI.logger.publish (new LogRecord (
                                 Level.SEVERE,

@@ -204,8 +204,12 @@ class RMI
          */
         public static Method findMethod (Class <?> c, SerializedMethod method)
         {
+            System.out.println ("Looking for: " + method);
+
             for (Method m : c.getMethods ()) {
+                System.out.println ("Method " + new SerializedMethod (m));
                 if (new SerializedMethod (m).equals (method)) {
+                    System.out.println ("Found Method " + new SerializedMethod (m));
                     return m;
                 }
             }
