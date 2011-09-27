@@ -284,16 +284,13 @@ public abstract class Stub
 
                     connection.close ();
 
-                    if (result instanceof InvocationTargetException) {
-                        ((InvocationTargetException)result).getCause ().printStackTrace ();
-                        throw (Exception)(((InvocationTargetException)result).getCause ());
-                    }
                 } catch (IOException e) {
                     RMI.logger.publish (new LogRecord (
                                 Level.SEVERE,
                                 "IOException on connection with " + address +
                                 " : " + e.getMessage ()
                                 ));
+                    e.printStackTrace ();
 
                     throw new RMIException (e.getMessage ());
                 } catch (ClassNotFoundException e) {
@@ -304,6 +301,9 @@ public abstract class Stub
 
                     throw new RMIException (e.getMessage ());
                 } 
+                if (result instanceof InvocationTargetException) {
+                    throw (Exception)(((InvocationTargetException)result).getCause ());
+                }
             }
 
             return result;

@@ -78,19 +78,16 @@ class SkeletonConnection <T> implements Runnable
         <p>
         @throws IOException When the streams couldn't be referenced, or the
                             result couldn't be sent back to the client.
-
         @throws NoSuchMethodException When the method being invoked isn't a
                                       member of the Skeleton's implementation.
-
         @throws IllegalAccessException When the method being invoked has a
                                        restriction that prevents its invocation
                                        from the <code>SkeletonConnection</code>.
-
         @throws InvocationTargetException When the method being invoked throws
                                           an exception.
      */
     private void invoke () throws IOException, NoSuchMethodException,
-            IllegalAccessException, InvocationTargetException
+            IllegalAccessException
     {
         if (method == null) {
             throw new NoSuchMethodException ("Method not found");
