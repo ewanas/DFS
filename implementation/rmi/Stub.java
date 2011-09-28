@@ -233,7 +233,7 @@ public abstract class Stub
             @param call Is the method being called on the stub.
             @param args Are the arguments to the method being called.
          */
-        synchronized public Object invoke (Object stub, Method call, Object [] args)
+        public Object invoke (Object stub, Method call, Object [] args)
             throws RMIException, Exception
         {
             Socket      connection = new Socket ();
