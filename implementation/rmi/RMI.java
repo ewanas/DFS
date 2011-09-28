@@ -135,7 +135,7 @@ public abstract class RMI
       @param c Is the class to search within the methods of.
       @param method Is the serialized method.
       @return null If no method conforms to the description of
-      <code>method</code>.
+                   <code>method</code>.
       */
     public static Method findMethod (Class <?> c, SerializedMethod method)
     {
