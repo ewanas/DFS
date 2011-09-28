@@ -156,7 +156,7 @@ public class Path implements Iterable<String>, Serializable
 
         /** Method isn't implemented.
 
-            @throw UnsupportedOperationException Because this method isn't
+            @throws UnsupportedOperationException Because this method isn't
                                                  implemented.
          */ 
         public void remove ()

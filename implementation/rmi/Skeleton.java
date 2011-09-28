@@ -5,6 +5,7 @@ import java.lang.reflect.*;
 import java.util.*;
 import java.io.*;
 import java.util.logging.*;
+import java.util.concurrent.*;
 
 /** RMI skeleton
 
@@ -73,10 +74,7 @@ public class Skeleton<T>
 
         implementation = server;
 
-        RMI.logger.publish (new LogRecord (
-                    Level.FINE,
-                    "Created a new Skeleton with no specific port"
-                    ));
+        RMI.logger.info ("Created a new Skeleton with no specific port");
     }
 
     /** Creates a <code>Skeleton</code> with the given initial server address.
@@ -120,10 +118,7 @@ public class Skeleton<T>
 
         implementation = server;
 
-        RMI.logger.publish (new LogRecord (
-                    Level.FINE,
-                    "Created a new Skeleton that will listen on " + address
-                    ));
+        RMI.logger.info ("Created a new Skeleton that will listen on " + address);
     }
 
     /** Called when the listening thread exits.
@@ -147,11 +142,9 @@ public class Skeleton<T>
     protected void stopped(Throwable cause)
     {
         if (cause != null) {
-            RMI.logger.publish (new LogRecord (
-                        Level.INFO,
-                        "Stopping the Skeleton at " + address +
-                        cause.getMessage ()
-                        ));
+            RMI.logger.info (
+                    "Stopping the Skeleton at " + address + cause.getMessage ()
+                    );
         }
     }
 
@@ -172,10 +165,7 @@ public class Skeleton<T>
      */
     protected boolean listen_error(Exception exception)
     {
-        RMI.logger.publish (new LogRecord (
-                    Level.INFO,
-                    "Error" + exception.getMessage ())
-                );
+        RMI.logger.info ("Error" + exception.getMessage ());
 
         return exception != null;
     }
@@ -219,10 +209,7 @@ public class Skeleton<T>
             }
         }
         
-        RMI.logger.publish (new LogRecord (
-                    Level.INFO,
-                    "Started the Skeleton at " + address
-                    ));
+        RMI.logger.info ("Started the Skeleton at " + address);
     }
 
     /** Stops the skeleton server, if it is already running.
@@ -236,10 +223,7 @@ public class Skeleton<T>
      */
     public synchronized void stop()
     {
-        RMI.logger.publish (new LogRecord (
-                    Level.INFO,
-                    "Stopping the server at " + address
-                    ));
+        RMI.logger.info ("Stopping the server at " + address);
 
         skeletonServer.stop ();
         stopped (null);

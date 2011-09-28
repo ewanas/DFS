@@ -233,7 +233,7 @@ public abstract class Stub
             @param call Is the method being called on the stub.
             @param args Are the arguments to the method being called.
          */
-        public Object invoke (Object stub, Method call, Object [] args)
+        synchronized public Object invoke (Object stub, Method call, Object [] args)
             throws RMIException, Exception
         {
             Socket      connection = new Socket ();
@@ -245,10 +245,7 @@ public abstract class Stub
             ObjectOutputStream  toServer;
             ObjectInputStream   fromServer;
 
-            RMI.logger.publish (new LogRecord (
-                        Level.INFO,
-                        "Calling method " + call.getName ()
-                        ));
+            RMI.logger.info ("Calling method " + call.getName ());
 
             if (call.getName ().equals ("equals") && args.length == 1) {
                 if (args [0] == null) {
@@ -275,29 +272,24 @@ public abstract class Stub
 
                     toServer.writeObject (toInvoke);
 
-                    RMI.logger.publish (new LogRecord (
-                                Level.INFO,
-                                "Sent invocation to Skeleton"
-                                ));
+                    RMI.logger.info ("Sent invocation to Skeleton");
 
                     result = fromServer.readObject ();
 
                     connection.close ();
-
+                    toServer.close ();
+                    fromServer.close ();
                 } catch (IOException e) {
-                    RMI.logger.publish (new LogRecord (
-                                Level.SEVERE,
-                                "IOException on connection with " + address +
-                                " : " + e.getMessage ()
-                                ));
-                    e.printStackTrace ();
+                    RMI.logger.severe (
+                            "IOException on connection with " + address +
+                            " : " + e.getMessage ()
+                            );
 
                     throw new RMIException (e.getMessage ());
                 } catch (ClassNotFoundException e) {
-                    RMI.logger.publish (new LogRecord (
-                                Level.SEVERE,
-                                "ClassNotFoundException: " + e.getMessage ()
-                                ));
+                    RMI.logger.severe (
+                            "ClassNotFoundException: " + e.getMessage ()
+                            );
 
                     throw new RMIException (e.getMessage ());
                 } 

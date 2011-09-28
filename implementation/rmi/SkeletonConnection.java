@@ -27,10 +27,7 @@ class SkeletonConnection <T> implements Runnable
         this.implementation = implementation;
         this.server = server;
 
-        RMI.logger.publish (new LogRecord (
-                    Level.INFO,
-                    "Accepting a new connection on" + connection
-                    ));
+        RMI.logger.info ("Accepting a new connection on" + connection);
     }
 
     /** This attempts to read the method and its arguments from the client.
@@ -56,21 +53,17 @@ class SkeletonConnection <T> implements Runnable
         invocation = stubCall.readObject ();
 
         methodName = (RMI.SerializedMethod)((Object [])invocation)[0];
-        method = RMI.SerializedMethod.findMethod (
+        method = RMI.findMethod (
                 implementation.getClass (),
                 methodName
                 );
         args = ((Object [])((Object [])invocation)[1]);
-        RMI.logger.publish (new LogRecord (
-                    Level.INFO,
-                    "Executing method with argument : " + args
-                    ));
+        RMI.logger.info ("Executing method with argument : " + args);
 
-        RMI.logger.publish (new LogRecord (
-                    Level.INFO,
-                    "Unpacked a method with serialized form: " +
-                    methodName.toString ()
-                    ));
+        RMI.logger.info (
+                "Unpacked a method with serialized form: " +
+                methodName.toString ()
+                );
     }
 
     /** Invokes the method and sends the result back to the client.
@@ -93,12 +86,10 @@ class SkeletonConnection <T> implements Runnable
             throw new NoSuchMethodException ("Method not found");
         }
 
-        RMI.logger.publish (new LogRecord (
-                    Level.INFO,
-                    "Executing " + new RMI.SerializedMethod (method) + " on " +
-                    implementation.toString () +
-                    " with arguments " + Arrays.asList (args)
-                    ));
+        RMI.logger.info (
+                "Executing " + new RMI.SerializedMethod (method) + " on " +
+                implementation.toString ()
+                );
 
         method.setAccessible (true);
 
@@ -108,17 +99,11 @@ class SkeletonConnection <T> implements Runnable
             invocationResult = method.invoke (implementation, args);
         } catch (InvocationTargetException e) {
             invocationResult = e;
-            RMI.logger.publish (new LogRecord (
-                        Level.SEVERE,
-                        "Exception in call:\n" + e.getMessage ()
-                        ));
+            RMI.logger.severe ("Exception in call:\n" + e.getMessage ());
         }
 
         result.writeObject (invocationResult);
-        RMI.logger.publish (new LogRecord (
-                    Level.INFO,
-                    "Done and returned " + invocationResult
-                    ));
+        RMI.logger.info ("Done and returned " + invocationResult);
     }
 
     @Override
@@ -129,11 +114,11 @@ class SkeletonConnection <T> implements Runnable
             invoke ();
             clientSocket.close ();
         } catch (Exception e) {
-            RMI.logger.publish (new LogRecord (
-                        Level.SEVERE,
-                        "Failed to execute method, on the remote side: " +
-                        e.getMessage ()
-                        ));
+            RMI.logger.severe (
+                    "Failed to execute method, on the remote side: " +
+                    e.getMessage ()
+                    );
+
             e.printStackTrace ();
             server.listen_error (e);
         }

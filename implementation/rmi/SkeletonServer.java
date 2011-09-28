@@ -9,11 +9,11 @@ import java.util.logging.*;
  */
 class SkeletonServer<T> implements Runnable
 {
-    private ServerSocket    server;
-    private Skeleton <T>    parent;
-    private ExecutorService clientPool;
-    private boolean         stopped = false;
-    private T               implementation;
+    private ServerSocket        server;
+    private Skeleton <T>        parent;
+    private ExecutorService     clientPool;
+    volatile private boolean    stopped = false;
+    private T                   implementation;
 
     /** Creates a new <code>SkeletonServer</code> that is bound to the
         specified <code>InetSocketAddress</code>.
@@ -30,25 +30,24 @@ class SkeletonServer<T> implements Runnable
         this.parent = parent;
         server = new ServerSocket ();
         server.bind (parent.address);
+        parent.address = new InetSocketAddress (
+                server.getInetAddress (),
+                server.getLocalPort ()
+                );
 
         clientPool = Executors.newCachedThreadPool ();
 
         implementation = c;
 
-        RMI.logger.publish (new LogRecord (
-                    Level.INFO,
-                    "Skeleton Server initialized"
-                    ));
+        RMI.logger.info ("Skeleton Server initialized");
     }
 
     /** Runs the server and listens for new connections.  */
     @Override
     public void run ()
     {
-        RMI.logger.publish (new LogRecord (
-                    Level.INFO,
-                    "Skeleton listening on " + server
-                    ));
+        RMI.logger.info ("Skeleton listening on " + server);
+
         try {
             while (server != null && !stopped) {
                 clientPool.execute (
@@ -59,17 +58,15 @@ class SkeletonServer<T> implements Runnable
                             ));
             }
 
-            RMI.logger.publish (new LogRecord (
-                        Level.INFO,
-                        "Server stopped gracefully"
-                        ));
+            RMI.logger.info ("Server stopped gracefully");
         } catch (IOException e) {
-            RMI.logger.publish (new LogRecord (
-                        Level.INFO,
+            if (!stopped) {
+                RMI.logger.severe (
                         "Server stopped abnormally " + e.getMessage ()
-                        ));
+                        );
 
-            parent.listen_error (e);
+                parent.listen_error (e);
+            }
         }
     }
 
