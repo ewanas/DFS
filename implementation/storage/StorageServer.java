@@ -16,15 +16,21 @@ import naming.*;
  */
 public class StorageServer implements Storage, Command
 {
+    File    root;
+
     /** Creates a storage server, given a directory on the local filesystem.
 
         @param root Directory on the local filesystem. The contents of this
                     directory will be accessible through the storage server.
         @throws NullPointerException If <code>root</code> is <code>null</code>.
     */
-    public StorageServer(File root)
+    public StorageServer(File root) throws NullPointerException
     {
-        throw new UnsupportedOperationException("not implemented");
+        if (root == null) {
+            throw new NullPointerException ("Null root directory provided");
+        }
+
+        this.root = root;
     }
 
     /** Starts the storage server and registers it with the given naming

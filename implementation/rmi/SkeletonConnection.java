@@ -96,7 +96,9 @@ class SkeletonConnection <T> implements Runnable
         Object invocationResult;
 
         try {
-            invocationResult = method.invoke (implementation, args);
+            synchronized (implementation) {
+                invocationResult = method.invoke (implementation, args);
+            }
         } catch (InvocationTargetException e) {
             invocationResult = e;
             RMI.logger.severe ("Exception in call:\n" + e.getMessage ());
