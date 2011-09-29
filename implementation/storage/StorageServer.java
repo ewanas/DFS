@@ -16,7 +16,8 @@ import naming.*;
  */
 public class StorageServer implements Storage, Command
 {
-    File    root;
+    File                root;
+    Skeleton <Storage>  invoker;
 
     /** Creates a storage server, given a directory on the local filesystem.
 
@@ -29,6 +30,8 @@ public class StorageServer implements Storage, Command
         if (root == null) {
             throw new NullPointerException ("Null root directory provided");
         }
+
+        invoker = new Skeleton <Storage> (Storage.class, this);
 
         this.root = root;
     }
@@ -56,7 +59,7 @@ public class StorageServer implements Storage, Command
     public synchronized void start(String hostname, Registration naming_server)
         throws RMIException, UnknownHostException, FileNotFoundException
     {
-        throw new UnsupportedOperationException("not implemented");
+        invoker.start ();
     }
 
     /** Stops the storage server.
@@ -66,16 +69,20 @@ public class StorageServer implements Storage, Command
      */
     public void stop()
     {
-        throw new UnsupportedOperationException("not implemented");
+        invoker.stop ();
     }
 
     /** Called when the storage server has shut down.
 
-        @param cause The cause for the shutdown, if any, or <code>null</code> if
-                     the server was shut down by the user's request.
+        @param cause The cause for the shutdown, if any, or <code>null</code>
+                     if the server was shut down by the user's request.
      */
     protected void stopped(Throwable cause)
     {
+        if (cause != null) {
+            // TODO log it
+            // Throw it, maybe.
+        }
     }
 
     // The following methods are documented in Storage.java.
