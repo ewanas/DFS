@@ -127,6 +127,7 @@ public class NamingServer implements Service, Registration
     public Path[] register(Storage client_stub, Command command_stub,
                            Path[] files)
     {
-        throw new UnsupportedOperationException("not implemented");
+        System.out.println ("yay!");
+        while (true) {}
     }
 }

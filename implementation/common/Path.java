@@ -279,7 +279,7 @@ public class Path implements Iterable<String>, Serializable
      */
     public File toFile(File root)
     {
-        throw new UnsupportedOperationException ("");
+        return new File (root, this.toString ());
     }
 
     /** Compares two paths for equality.
@@ -339,5 +339,4 @@ public class Path implements Iterable<String>, Serializable
                 p.indexOf ("/") == -1 &&
                 !p.equals ("");
     }
-
 }

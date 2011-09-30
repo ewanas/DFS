@@ -285,6 +285,8 @@ public abstract class Stub
                             " : " + e.getMessage ()
                             );
 
+                    e.printStackTrace ();
+
                     throw new RMIException (e.getMessage ());
                 } catch (ClassNotFoundException e) {
                     RMI.logger.severe (
@@ -293,6 +295,7 @@ public abstract class Stub
 
                     throw new RMIException (e.getMessage ());
                 } 
+
                 if (result instanceof InvocationTargetException) {
                     throw (Exception)(((InvocationTargetException)result).getCause ());
                 }

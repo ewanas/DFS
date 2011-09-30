@@ -2,6 +2,9 @@ package storage;
 
 import java.io.*;
 import java.net.*;
+import java.util.*;
+
+import java.util.logging.*;
 
 import common.*;
 import rmi.*;
@@ -14,10 +17,12 @@ import naming.*;
     through a storage server are those accessible under a given directory of the
     local filesystem.
  */
-public class StorageServer implements Storage, Command
+public class StorageServer implements Storage, Command, Serializable
 {
-    File                root;
-    Skeleton <Storage>  invoker;
+    File        root;
+
+    transient Skeleton <Storage>    invoker;
+    transient Logger                logger = Logger.getAnonymousLogger ();
 
     /** Creates a storage server, given a directory on the local filesystem.
 
@@ -32,6 +37,8 @@ public class StorageServer implements Storage, Command
         }
 
         invoker = new Skeleton <Storage> (Storage.class, this);
+
+        logger.info ("Creating a new storage server");
 
         this.root = root;
     }
@@ -59,7 +66,31 @@ public class StorageServer implements Storage, Command
     public synchronized void start(String hostname, Registration naming_server)
         throws RMIException, UnknownHostException, FileNotFoundException
     {
+        String  error;
+        Path [] toDelete;
+
+        logger.info ("Staring the storage server");
         invoker.start ();
+
+        // Registration process
+        try {
+            toDelete = naming_server.register (
+                    this, this,
+                    Path.list(root)
+                    );
+
+            for (Path file : toDelete) {
+                if (!delete (file)) {
+                    throw new FileNotFoundException (
+                            "Can't find the file " + file
+                            );
+                }
+            }
+        } catch (Exception e) {
+            error = "Failed to register the storage server " + e.getMessage ();
+            logger.severe (error);
+            throw e;
+        }
     }
 
     /** Stops the storage server.
@@ -116,6 +147,54 @@ public class StorageServer implements Storage, Command
     @Override
     public synchronized boolean delete(Path path)
     {
-        throw new UnsupportedOperationException("not implemented");
+        List <File> toDelete;
+
+        try {
+            if (path.toFile (root).isDirectory ()) {
+                toDelete = new LinkedList <File> ();
+
+                for (Path p : path.list (path.toFile (root))) {
+                    toDelete.add (p.toFile (root));
+                }
+
+                Collections.sort (toDelete, new ParentLast <File> ());
+            } else {
+                toDelete = new ArrayList <File> ();
+                toDelete.add (path.toFile (root));
+            }
+
+            for (File f : toDelete) {
+                f.delete ();
+            }
+        } catch (SecurityException e) {
+            System.out.println (e.getMessage ());
+        } catch (FileNotFoundException e) {
+            System.out.println (e.getMessage ());
+        }
+
+        return true; // TODO REMOVE THIS
+    }
+
+    /** Sorts a list of <code>File</code>s where subfiles go before parents. */
+    public static class ParentLast <T extends File> implements Comparator <T>
+    {
+        /** Compares two files using a parent last approach.
+
+            <p>
+            If both files are directories or if they both aren't directories, 
+            normal lexiographic ordering is applied.
+
+            If either file is not a directory, the file gets ranked higher.
+          */
+        public int compare (T first, T second)
+        {
+            if (first.isDirectory () && !second.isDirectory ()) {
+                return -3;
+            } else if (!first.isDirectory () && second.isDirectory ()) {
+                return 3;
+            } else {
+                return first.compareTo (second);
+            }
+        }
     }
 }
