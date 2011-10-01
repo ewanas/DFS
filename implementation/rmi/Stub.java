@@ -203,7 +203,8 @@ public abstract class Stub
         This is responsible for connecting to the <code>Skeleton</code> and
         forwarding all method invocations on the stub to it.
      */
-    private static class StubHandler<T> implements InvocationHandler
+    private static class StubHandler<T> implements InvocationHandler,
+            Serializable
     {
         InetSocketAddress   address;
         Class <T>           remoteInterface;

@@ -78,19 +78,18 @@ public class Path implements Iterable<String>, Serializable
 
                 for (String component : components) {
                     if (!component.equals ("")) {
+                        assert component.indexOf ("/") == -1;
                         pathPrefix = new Path (pathPrefix, component);
                     }
                 }
             } else if (path.equals ("/")) {
                 return;
             }
-
-            return;
+        } else {
+            throw new IllegalArgumentException (
+                    "Invalid path string"
+                    );
         }
-
-        throw new IllegalArgumentException (
-                "Invalid path string"
-                );
     }
 
     /** Returns an iterator over the components of the path.
@@ -323,6 +322,9 @@ public class Path implements Iterable<String>, Serializable
                 pathStr = pathPrefix.toString () + "/" + pathComponent;
             }
         }
+
+        // TODO bug fix, but bug originates elsewhere
+        pathStr = pathStr.replaceAll ("//", "/");
 
         return pathStr;
     }

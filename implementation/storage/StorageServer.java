@@ -17,12 +17,14 @@ import naming.*;
     through a storage server are those accessible under a given directory of the
     local filesystem.
  */
-public class StorageServer implements Storage, Command, Serializable
+public class StorageServer implements Storage, Command
 {
     File        root;
 
-    transient Skeleton <Storage>    invoker;
-    transient Logger                logger = Logger.getAnonymousLogger ();
+    Skeleton <Storage>  storageInvoker;
+    Skeleton <Command>  commandInvoker;
+
+    Logger      logger = Logger.getAnonymousLogger ();
 
     /** Creates a storage server, given a directory on the local filesystem.
 
@@ -36,7 +38,8 @@ public class StorageServer implements Storage, Command, Serializable
             throw new NullPointerException ("Null root directory provided");
         }
 
-        invoker = new Skeleton <Storage> (Storage.class, this);
+        storageInvoker = new Skeleton <Storage> (Storage.class, this);
+        commandInvoker = new Skeleton <Command> (Command.class, this);
 
         logger.info ("Creating a new storage server");
 
@@ -70,12 +73,14 @@ public class StorageServer implements Storage, Command, Serializable
         Path [] toDelete;
 
         logger.info ("Staring the storage server");
-        invoker.start ();
 
-        // Registration process
+        storageInvoker.start ();
+        commandInvoker.start ();
+
         try {
             toDelete = naming_server.register (
-                    this, this,
+                    Stub.create (Storage.class, storageInvoker),
+                    Stub.create (Command.class, commandInvoker),
                     Path.list(root)
                     );
 
@@ -86,6 +91,13 @@ public class StorageServer implements Storage, Command, Serializable
                             );
                 }
             }
+
+            prune (root);
+
+            System.out.println (
+                    "Now I have " +
+                    Arrays.asList (Path.list (root))
+                    );
         } catch (Exception e) {
             error = "Failed to register the storage server " + e.getMessage ();
             logger.severe (error);
@@ -100,7 +112,10 @@ public class StorageServer implements Storage, Command, Serializable
      */
     public void stop()
     {
-        invoker.stop ();
+        storageInvoker.stop ();
+        commandInvoker.stop ();
+
+        stopped (null);
     }
 
     /** Called when the storage server has shut down.
@@ -150,51 +165,86 @@ public class StorageServer implements Storage, Command, Serializable
         List <File> toDelete;
 
         try {
-            if (path.toFile (root).isDirectory ()) {
-                toDelete = new LinkedList <File> ();
-
-                for (Path p : path.list (path.toFile (root))) {
-                    toDelete.add (p.toFile (root));
-                }
-
-                Collections.sort (toDelete, new ParentLast <File> ());
-            } else {
-                toDelete = new ArrayList <File> ();
-                toDelete.add (path.toFile (root));
-            }
-
-            for (File f : toDelete) {
-                f.delete ();
+            if (!purge (path.toFile (root))) {
+                throw new RuntimeException (
+                        "Couldn't purge the file " + path + "successfully"
+                        );
             }
         } catch (SecurityException e) {
             System.out.println (e.getMessage ());
-        } catch (FileNotFoundException e) {
-            System.out.println (e.getMessage ());
+            return false;
         }
 
-        return true; // TODO REMOVE THIS
+        return true;
     }
 
-    /** Sorts a list of <code>File</code>s where subfiles go before parents. */
-    public static class ParentLast <T extends File> implements Comparator <T>
+    /** Prunes the directory.
+
+        <p>
+        This removes all directories that have only empty directories or empty
+        directories.
+
+        <p>
+        @param dir Is the directory that should be pruned.
+      */
+    private static void prune (File dir)
     {
-        /** Compares two files using a parent last approach.
-
-            <p>
-            If both files are directories or if they both aren't directories, 
-            normal lexiographic ordering is applied.
-
-            If either file is not a directory, the file gets ranked higher.
-          */
-        public int compare (T first, T second)
-        {
-            if (first.isDirectory () && !second.isDirectory ()) {
-                return -3;
-            } else if (!first.isDirectory () && second.isDirectory ()) {
-                return 3;
-            } else {
-                return first.compareTo (second);
+        if (dir != null && dir.isDirectory ()) {
+            for (File f : dir.listFiles ()) {
+                if (hasNoFiles (f)) {
+                    prune (f);
+                    f.delete ();
+                }
             }
         }
+    }
+
+    /** Purges a directory and all its contents.
+
+        <p>
+        @param toPurge Is the directory or file to purge.
+        @throws SecurityException When we're denied the operation of deleting
+                                  the file.
+     */
+    private static boolean purge (File toPurge) throws SecurityException
+    {
+        boolean pass = false;
+
+        if (toPurge != null) {
+            if (toPurge.isDirectory ()) {
+                pass = true;
+                for (File f : toPurge.listFiles ()) {
+                    pass = pass && purge (f);
+                    pass = pass && f.delete ();
+                }
+            } else {
+                pass = toPurge.delete ();
+            }
+        }
+
+        return pass;
+    }
+
+    /** Checks whether a directory has no files in it.
+
+        <p>
+        @param dir Is the directory to check.
+        @return true If the directory contains only directories and no files.
+     */
+    private static boolean hasNoFiles (File dir)
+    {
+        if (dir != null && dir.isDirectory ()) {
+            File [] subdirs = dir.listFiles ();
+
+            for (File f : subdirs) {
+                if (!f.isDirectory ()) {
+                    return false;
+                }
+            }
+        } else {
+            return false;
+        }
+
+        return true;
     }
 }

@@ -98,10 +98,13 @@ public abstract class RMI
             if (other instanceof SerializedMethod) {
                 m = (SerializedMethod)other;
 
+                /* TODO check for type compatibility
                 return  m.exceptions.equals (exceptions) &&
                         m.parameters.equals (parameters) &&
                         m.name.equals (name) &&
                         m.returnType.equals (returnType);
+                        */
+                return m.name.equals (name);
             }
 
             return false;
