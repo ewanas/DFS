@@ -9,13 +9,16 @@ import java.util.*;
 /** Represents an RMI conversation. */
 class SkeletonConnection <T> implements Runnable
 {
-    Socket                  clientSocket;
-    T                       implementation;
-    SkeletonServer<T>       server;
-    ObjectOutputStream      result;
+    Socket              clientSocket;
+    T                   implementation;
+    SkeletonServer<T>   server;
+    ObjectOutputStream  result;
 
-    Method                  method;
-    Object[]                args;
+    Method              method;
+    Object[]            args;
+
+    static Logger       logger = Logger.getAnonymousLogger ();
+    static Level        loggingLevel = Level.OFF;
 
     public SkeletonConnection (
             Socket connection,
@@ -23,11 +26,13 @@ class SkeletonConnection <T> implements Runnable
             SkeletonServer<T> server
             )
     {
+        logger.setLevel (loggingLevel);
+
         clientSocket = connection;
         this.implementation = implementation;
         this.server = server;
 
-        RMI.logger.info ("Accepting a new connection on" + connection);
+        logger.info ("Accepting a new connection on" + connection);
     }
 
     /** This attempts to read the method and its arguments from the client.
@@ -58,9 +63,9 @@ class SkeletonConnection <T> implements Runnable
                 methodName
                 );
         args = ((Object [])((Object [])invocation)[1]);
-        RMI.logger.info ("Executing method with argument : " + args);
+        logger.info ("Executing method with argument : " + args);
 
-        RMI.logger.info (
+        logger.info (
                 "Unpacked a method with serialized form: " +
                 methodName.toString ()
                 );
@@ -86,7 +91,7 @@ class SkeletonConnection <T> implements Runnable
             throw new NoSuchMethodException ("Method not found");
         }
 
-        RMI.logger.info (
+        logger.info (
                 "Executing " + new RMI.SerializedMethod (method) + " on " +
                 implementation.toString ()
                 );
@@ -101,11 +106,11 @@ class SkeletonConnection <T> implements Runnable
             }
         } catch (InvocationTargetException e) {
             invocationResult = e;
-            RMI.logger.severe ("Exception in call:\n" + e.getMessage ());
+            logger.severe ("Exception in call:\n" + e.getMessage ());
         }
 
         result.writeObject (invocationResult);
-        RMI.logger.info ("Done and returned " + invocationResult);
+        logger.info ("Done and returned " + invocationResult);
     }
 
     @Override
@@ -116,7 +121,7 @@ class SkeletonConnection <T> implements Runnable
             invoke ();
             clientSocket.close ();
         } catch (Exception e) {
-            RMI.logger.severe (
+            logger.severe (
                     "Failed to execute method, on the remote side: " +
                     e.getMessage ()
                     );

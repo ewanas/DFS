@@ -4,6 +4,9 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
+import java.nio.*;
+import java.nio.channels.*;
+
 import java.util.logging.*;
 
 import common.*;
@@ -24,7 +27,8 @@ public class StorageServer implements Storage, Command
     Skeleton <Storage>  storageInvoker;
     Skeleton <Command>  commandInvoker;
 
-    Logger      logger = Logger.getAnonymousLogger ();
+    static Logger       logger = Logger.getAnonymousLogger ();
+    static Level        loggingLevel = Level.OFF;
 
     /** Creates a storage server, given a directory on the local filesystem.
 
@@ -34,6 +38,8 @@ public class StorageServer implements Storage, Command
     */
     public StorageServer(File root) throws NullPointerException
     {
+        logger.setLevel (loggingLevel);
+
         if (root == null) {
             throw new NullPointerException ("Null root directory provided");
         }
@@ -77,32 +83,23 @@ public class StorageServer implements Storage, Command
         storageInvoker.start ();
         commandInvoker.start ();
 
-        try {
-            toDelete = naming_server.register (
-                    Stub.create (Storage.class, storageInvoker),
-                    Stub.create (Command.class, commandInvoker),
-                    Path.list(root)
-                    );
+        toDelete = naming_server.register (
+                Stub.create (Storage.class, storageInvoker),
+                Stub.create (Command.class, commandInvoker),
+                Path.list(root)
+                );
 
-            for (Path file : toDelete) {
-                if (!delete (file)) {
-                    throw new FileNotFoundException (
-                            "Can't find the file " + file
-                            );
-                }
+        for (Path file : toDelete) {
+            if (!delete (file)) {
+                throw new FileNotFoundException (
+                        "Can't find the file " + file
+                        );
             }
-
-            prune (root);
-
-            System.out.println (
-                    "Now I have " +
-                    Arrays.asList (Path.list (root))
-                    );
-        } catch (Exception e) {
-            error = "Failed to register the storage server " + e.getMessage ();
-            logger.severe (error);
-            throw e;
         }
+
+        prune (root);
+
+        logger.info ("Started storage server and registered it");
     }
 
     /** Stops the storage server.
@@ -135,28 +132,107 @@ public class StorageServer implements Storage, Command
     @Override
     public synchronized long size(Path file) throws FileNotFoundException
     {
-        throw new UnsupportedOperationException("not implemented");
+        File toQuery = file.toFile (root);
+
+        if (toQuery.exists () && toQuery.isFile ()) {
+            return toQuery.length ();
+        } else {
+            throw new FileNotFoundException ("Can't get size for " + file);
+        }
     }
 
     @Override
     public synchronized byte[] read(Path file, long offset, int length)
         throws FileNotFoundException, IOException
     {
-        throw new UnsupportedOperationException("not implemented");
+        FileInputStream fileData;
+        byte []         data;
+        File            toRead = file.toFile (root);
+
+        if (toRead.isFile () && offset >= 0 &&
+                offset + length <= size (file) && length >= 0)
+        {
+            fileData = new FileInputStream (toRead);
+
+            fileData.skip (offset);
+
+            data = new byte [length];
+            fileData.read (data);
+
+            fileData.close ();
+        } else if (toRead.isFile ()) {
+            throw new IndexOutOfBoundsException (
+                    "Can't read at a negative offset or a negative amount"
+                    );
+        } else {
+            throw new FileNotFoundException (
+                    toRead + " refers to a directory"
+                    );
+        }
+
+        return data;
     }
 
     @Override
     public synchronized void write(Path file, long offset, byte[] data)
         throws FileNotFoundException, IOException
     {
-        throw new UnsupportedOperationException("not implemented");
+        FileChannel fileData;
+        File        destination = file.toFile (root);
+        long        written;
+
+        if (destination.isFile () && offset >= 0) {
+            fileData = new FileOutputStream (destination).getChannel ();
+
+            fileData.position (offset);
+
+            written = fileData.write (ByteBuffer.wrap (data));
+
+            if (data.length != written) {
+                throw new IOException (
+                        "Failed to write to the file correctly, wrote " +
+                        written + " instead of " + data.length
+                        );
+            }
+        } else if (destination.isFile ()) {
+            throw new IndexOutOfBoundsException (
+                    "Can't write at a negative offset"
+                    );
+        } else {
+            throw new FileNotFoundException (
+                    destination + " refers to a directory"
+                    );
+        }
     }
 
     // The following methods are documented in Command.java.
     @Override
     public synchronized boolean create(Path file)
     {
-        throw new UnsupportedOperationException("not implemented");
+        boolean created = false;
+
+        logger.info ("Creating " + file);
+
+        if (file == null) {
+            throw new NullPointerException ("Can't create file");
+        } else if (file.isRoot ()) {
+            return true;
+        } else if (!(file.parent ().toFile (root).exists ())) {
+            try {
+                created = create (file.parent ());
+                created = created && file.toFile (root).createNewFile ();
+            } catch (Exception e) {
+                created = false;
+            }
+        } else if (file.parent ().toFile (root).exists ()) {
+            try {
+                created = file.toFile (root).createNewFile ();
+            } catch (Exception e) {
+                created = false;
+            }
+        }
+
+        return created;
     }
 
     @Override

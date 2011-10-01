@@ -14,6 +14,8 @@ class SkeletonServer<T> implements Runnable
     private ExecutorService     clientPool;
     volatile private boolean    stopped = false;
     private T                   implementation;
+    static Logger               logger = Logger.getAnonymousLogger ();
+    static Level                loggingLevel = Level.OFF;
 
     /** Creates a new <code>SkeletonServer</code> that is bound to the
         specified <code>InetSocketAddress</code>.
@@ -27,6 +29,8 @@ class SkeletonServer<T> implements Runnable
      */
     public SkeletonServer (Skeleton <T> parent, T c) throws IOException
     {
+        logger.setLevel (loggingLevel);
+
         this.parent = parent;
         server = new ServerSocket ();
         server.bind (parent.address);
@@ -39,14 +43,14 @@ class SkeletonServer<T> implements Runnable
 
         implementation = c;
 
-        RMI.logger.info ("Skeleton Server initialized");
+        logger.info ("Skeleton Server initialized");
     }
 
     /** Runs the server and listens for new connections.  */
     @Override
     public void run ()
     {
-        RMI.logger.info ("Skeleton listening on " + server);
+        logger.info ("Skeleton listening on " + server);
 
         try {
             while (server != null && !stopped) {
@@ -58,10 +62,10 @@ class SkeletonServer<T> implements Runnable
                             ));
             }
 
-            RMI.logger.info ("Server stopped gracefully");
+            logger.info ("Server stopped gracefully");
         } catch (IOException e) {
             if (!stopped) {
-                RMI.logger.severe (
+                logger.severe (
                         "Server stopped abnormally " + e.getMessage ()
                         );
 

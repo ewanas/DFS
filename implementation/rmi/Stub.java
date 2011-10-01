@@ -208,6 +208,8 @@ public abstract class Stub
     {
         InetSocketAddress   address;
         Class <T>           remoteInterface;
+        static Logger       logger = Logger.getAnonymousLogger ();
+        static Level        loggerLevel = Level.OFF;
 
         /** Configures the proxy to forward method invocations to a specific
             address.
@@ -219,6 +221,8 @@ public abstract class Stub
         {
             address = skeletonAddress;
             this.remoteInterface = remoteInterface;
+
+            logger.setLevel (loggerLevel);
         }
 
         /** Marshals the arguments and the methods name off to the
@@ -246,7 +250,7 @@ public abstract class Stub
             ObjectOutputStream  toServer;
             ObjectInputStream   fromServer;
 
-            RMI.logger.info ("Calling method " + call.getName ());
+            logger.info ("Calling method " + call.getName ());
 
             if (call.getName ().equals ("equals") && args.length == 1) {
                 if (args [0] == null) {
@@ -273,7 +277,7 @@ public abstract class Stub
 
                     toServer.writeObject (toInvoke);
 
-                    RMI.logger.info ("Sent invocation to Skeleton");
+                    logger.info ("Sent invocation to Skeleton");
 
                     result = fromServer.readObject ();
 
@@ -281,16 +285,14 @@ public abstract class Stub
                     toServer.close ();
                     fromServer.close ();
                 } catch (IOException e) {
-                    RMI.logger.severe (
+                    logger.severe (
                             "IOException on connection with " + address +
                             " : " + e.getMessage ()
                             );
 
-                    e.printStackTrace ();
-
                     throw new RMIException (e.getMessage ());
                 } catch (ClassNotFoundException e) {
-                    RMI.logger.severe (
+                    logger.severe (
                             "ClassNotFoundException: " + e.getMessage ()
                             );
 
