@@ -28,7 +28,7 @@ public class StorageServer implements Storage, Command
     Skeleton <Command>  commandInvoker;
 
     static Logger       logger = Logger.getAnonymousLogger ();
-    static Level        loggingLevel = Level.OFF;
+    static Level        loggingLevel = Level.ALL;
 
     /** Creates a storage server, given a directory on the local filesystem.
 
@@ -209,30 +209,37 @@ public class StorageServer implements Storage, Command
     @Override
     public synchronized boolean create(Path file)
     {
-        boolean created = false;
+        File    thisFile;
+        File    parent;
 
         logger.info ("Creating " + file);
 
         if (file == null) {
+            logger.severe ("Can't create null directory");
+
             throw new NullPointerException ("Can't create file");
-        } else if (file.isRoot ()) {
-            return true;
-        } else if (!(file.parent ().toFile (root).exists ())) {
+        } else if (file.equals (new Path ())) {
+            logger.severe ("Can't create root");
+            return false;
+        } else {
             try {
-                created = create (file.parent ());
-                created = created && file.toFile (root).createNewFile ();
-            } catch (Exception e) {
-                created = false;
-            }
-        } else if (file.parent ().toFile (root).exists ()) {
-            try {
-                created = file.toFile (root).createNewFile ();
-            } catch (Exception e) {
-                created = false;
+                thisFile = file.toFile (root);
+                parent = file.equals (new Path ()) ?
+                            null :
+                            file.parent ().toFile (root);
+
+                if (!thisFile.exists ()) {
+                    return thisFile.createNewFile ();
+                } else {
+                    return false;
+                }
+            } catch (IOException e) {
+                logger.severe (
+                        "Can't create " + file + " " +  e.getMessage ()
+                        );
+                return false;
             }
         }
-
-        return created;
     }
 
     @Override
