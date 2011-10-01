@@ -28,7 +28,7 @@ public class StorageServer implements Storage, Command
     Skeleton <Command>  commandInvoker;
 
     static Logger       logger = Logger.getAnonymousLogger ();
-    static Level        loggingLevel = Level.ALL;
+    static Level        loggingLevel = Level.OFF;
 
     /** Creates a storage server, given a directory on the local filesystem.
 
@@ -219,19 +219,18 @@ public class StorageServer implements Storage, Command
 
             throw new NullPointerException ("Can't create file");
         } else if (file.equals (new Path ())) {
+            // TODO isRoot () should work here
             logger.severe ("Can't create root");
             return false;
         } else {
             try {
                 thisFile = file.toFile (root);
-                parent = file.equals (new Path ()) ?
-                            null :
-                            file.parent ().toFile (root);
+                parent = file.toFile (root).getParentFile ();
 
-                if (!thisFile.exists ()) {
-                    return thisFile.createNewFile ();
+                if (!parent.exists ()) {
+                    return parent.mkdirs () && thisFile.createNewFile ();
                 } else {
-                    return false;
+                    return thisFile.createNewFile ();
                 }
             } catch (IOException e) {
                 logger.severe (
@@ -247,14 +246,22 @@ public class StorageServer implements Storage, Command
     {
         List <File> toDelete;
 
+        if (path == null) {
+            throw new NullPointerException ("Null path can't be deleted");
+        }
+
+        logger.info ("Deleting " + path);
+
         try {
-            if (!purge (path.toFile (root))) {
-                throw new RuntimeException (
-                        "Couldn't purge the file " + path + "successfully"
+            if (path.equals (new Path ())) {
+                throw new SecurityException ("Can't delete root");
+            } else if (!purge (path.toFile (root))) {
+                throw new IllegalArgumentException (
+                        "Couldn't purge the file " + path + " successfully"
                         );
             }
-        } catch (SecurityException e) {
-            System.out.println (e.getMessage ());
+        } catch (Exception e) {
+            logger.severe (e.getMessage ());
             return false;
         }
 
@@ -291,21 +298,19 @@ public class StorageServer implements Storage, Command
      */
     private static boolean purge (File toPurge) throws SecurityException
     {
-        boolean pass = false;
-
         if (toPurge != null) {
-            if (toPurge.isDirectory ()) {
-                pass = true;
+            if (toPurge.exists () && toPurge.isDirectory ()) {
                 for (File f : toPurge.listFiles ()) {
-                    pass = pass && purge (f);
-                    pass = pass && f.delete ();
+                    if (!(purge (f))) {
+                        return false;
+                    }
                 }
-            } else {
-                pass = toPurge.delete ();
             }
+
+            return toPurge.delete ();
         }
 
-        return pass;
+        return false;
     }
 
     /** Checks whether a directory has no files in it.
