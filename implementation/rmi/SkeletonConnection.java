@@ -126,7 +126,6 @@ class SkeletonConnection <T> implements Runnable
                     e.getMessage ()
                     );
 
-            e.printStackTrace ();
             server.listen_error (e);
         }
     }
