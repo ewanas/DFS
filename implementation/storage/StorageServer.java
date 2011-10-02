@@ -347,4 +347,36 @@ public class StorageServer implements Storage, Command
 
         return true;
     }
+
+    /** Test for equality of two <code>StorageServer</code>s.
+
+        <p>
+        Two storage servers are equal if they run on the same host and have the 
+        same root directory.
+
+        @param other Is the other StorageServer to test for equality with.
+        @return true If both StorageServer instances run on the same host and 
+                     have the same root location.
+     */
+    @Override
+    public boolean equals (Object other)
+    {
+        StorageServer s;
+
+        if (other instanceof StorageServer) {
+            s = (StorageServer)other;
+
+            return  s.storageInvoker.equals (storageInvoker) &&
+                    s.commandInvoker.equals (commandInvoker);
+        }
+
+        return false;
+    }
+
+    /** Hash for a StorageServer. */
+    @Override
+    public int hashCode ()
+    {
+        return root.hashCode ();
+    }
 }

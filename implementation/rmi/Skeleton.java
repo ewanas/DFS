@@ -35,7 +35,7 @@ public class Skeleton<T>
     SkeletonServer<T>   skeletonServer;
     T                   implementation;
     Logger              logger = Logger.getAnonymousLogger ();
-    Level               loggingLevel = Level.ALL;
+    Level               loggingLevel = Level.OFF;
 
     /** Creates a <code>Skeleton</code> with no initial server address. The
         address will be determined by the system when <code>start</code> is
@@ -201,7 +201,11 @@ public class Skeleton<T>
                     );
         } else {
             try {
-                skeletonServer = new SkeletonServer<T> (this, this.implementation);
+                skeletonServer = new SkeletonServer<T> (
+                        this,
+                        this.implementation
+                        );
+
                 new Thread (skeletonServer).start ();
             } catch (IOException e) {
                 throw new RMIException (e.getMessage ());

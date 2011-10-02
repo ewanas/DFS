@@ -3,6 +3,8 @@ package naming;
 import java.io.*;
 import java.net.*;
 import java.util.logging.*;
+import java.util.*;
+import java.util.concurrent.*;
 
 import rmi.*;
 import common.*;
@@ -41,6 +43,52 @@ public class NamingServer implements Service, Registration
 
     boolean     canStart = true;
 
+    Map <StorageCommandPair, List <Path>>     files;
+
+    /** Represents an immutable pair of Storage and Command implementations. */
+    private class StorageCommandPair
+    {
+        private Storage storage;
+        private Command command;
+
+        public StorageCommandPair (Storage storage, Command command)
+        {
+            this.storage = storage;
+            this.command = command;
+        }
+
+        public Storage getStorage ()
+        {
+            return storage;
+        }
+
+        public Command getCommand ()
+        {
+            return command;
+        }
+
+        @Override
+        public boolean equals (Object other)
+        {
+            StorageCommandPair  pair;
+
+            if (other instanceof StorageCommandPair) {
+                pair = (StorageCommandPair)other;
+
+                return  pair.storage.equals (storage) &&
+                        pair.command.equals (command);
+            }
+
+            return false;
+        }
+
+        @Override
+        public int hashCode ()
+        {
+            return storage.hashCode () + command.hashCode ();
+        }
+    }
+
     /** Creates the naming server object.
 
       <p>
@@ -71,6 +119,8 @@ public class NamingServer implements Service, Registration
                 this,
                 serviceAddress
                 );
+
+        files = new ConcurrentHashMap <StorageCommandPair, List <Path>> ();
 
         logger.info ("Created a new naming server");
         logger.info ("Registration requests on " + regAddress);
@@ -200,8 +250,43 @@ public class NamingServer implements Service, Registration
     public Path[] register(Storage client_stub, Command command_stub,
                            Path[] files)
     {
+        List <Path> toDelete = new ArrayList <Path> ();
+        Set <Path>  currentFiles = new HashSet <Path> ();
+
+        Set <StorageCommandPair>    servers = this.files.keySet ();
+        StorageCommandPair          pair =
+            new StorageCommandPair (client_stub, command_stub);
+
+        for (List <Path> filesOnServer : this.files.values ()) {
+            for (Path f : filesOnServer) {
+                currentFiles.add (f);
+            }
+        }
+
         logger.info ("Registering a new storage server");
 
-        throw new UnsupportedOperationException("not implemented");
+        if (client_stub == null || command_stub == null || files == null) {
+            throw new NullPointerException (
+                    "Can't register with null arguments"
+                    );
+        }
+
+        if (servers.contains (pair)) {
+            throw new IllegalStateException (
+                    "Storage server already regsitered"
+                    );
+        } else {
+            this.files.put (pair, new LinkedList <Path> ());
+        }
+
+        for (Path remoteFile : files) {
+            if (currentFiles.contains (remoteFile)) {
+                toDelete.add (remoteFile);
+            } else {
+                this.files.get (pair).add (remoteFile);
+            }
+        }
+
+        return toDelete.toArray (new Path [0]);
     }
 }
