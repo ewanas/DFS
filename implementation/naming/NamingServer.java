@@ -43,32 +43,38 @@ public class NamingServer implements Service, Registration
 
     /** Creates the naming server object.
 
-      <p>
-      The naming server is not started.
-      */
+        <p>
+        The naming server is not started.
+     */
     public NamingServer()
     {
         InetSocketAddress   regAddress = null;
         InetSocketAddress   serviceAddress = null;
 
-        regAddress = new InetSocketAddress (
-                NamingStubs.REGISTRATION_PORT
-                );
-        serviceAddress = new InetSocketAddress (
-                NamingStubs.SERVICE_PORT
-                );
+        try {
+            regAddress = new InetSocketAddress (
+                    InetAddress.getLocalHost (),
+                    NamingStubs.REGISTRATION_PORT
+                    );
+            serviceAddress = new InetSocketAddress (
+                    InetAddress.getLocalHost (),
+                    NamingStubs.SERVICE_PORT
+                    );
 
-        registrationInvoker = new Skeleton <Registration> (
-                Registration.class,
-                this,
-                regAddress
-                );
+            registrationInvoker = new Skeleton <Registration> (
+                    Registration.class,
+                    this,
+                    regAddress
+                    );
 
-        serviceInvoker = new Skeleton<Service> (
-                Service.class,
-                this,
-                serviceAddress
-                );
+            serviceInvoker = new Skeleton<Service> (
+                    Service.class,
+                    this,
+                    serviceAddress
+                    );
+        } catch (UnknownHostException e) {
+            stopped (e);
+        }
 
         logger.info ("Created a new naming server");
         logger.info ("Registration requests on " + regAddress);
