@@ -104,6 +104,8 @@ public class NamingServer implements Service, Registration
                 throw e;
             }
 
+            canStart = false;
+
             logger.info ("Started the Naming server");
         } else {
             logger.severe ("Can't restart the naming server");

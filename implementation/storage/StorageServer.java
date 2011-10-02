@@ -106,6 +106,8 @@ public class StorageServer implements Storage, Command
 
         prune (root);
 
+        canStart = false;
+
         logger.info ("Started storage server and registered it");
     }
 
@@ -131,6 +133,8 @@ public class StorageServer implements Storage, Command
     {
         if (cause != null) {
             logger.severe ("Storage server stopped abnormally " + cause);
+        } else {
+            logger.info ("Stopping the storage server");
         }
 
         canStart = false;
