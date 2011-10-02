@@ -230,8 +230,7 @@ public class StorageServer implements Storage, Command
             logger.severe ("Can't create null directory");
 
             throw new NullPointerException ("Can't create file");
-        } else if (file.equals (new Path ())) {
-            // TODO isRoot () should work here
+        } else if (file.isRoot ()) {
             logger.severe ("Can't create root");
             return false;
         } else {
@@ -265,7 +264,7 @@ public class StorageServer implements Storage, Command
         logger.info ("Deleting " + path);
 
         try {
-            if (path.equals (new Path ())) {
+            if (path.isRoot ()) {
                 throw new SecurityException ("Can't delete root");
             } else if (!purge (path.toFile (root))) {
                 throw new IllegalArgumentException (

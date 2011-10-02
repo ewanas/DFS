@@ -219,7 +219,7 @@ public class Path implements Iterable<String>, Serializable
      */
     public boolean isRoot()
     {
-        return pathPrefix == null && pathComponent == "";
+        return equals (new Path ());
     }
 
     /** Returns the path to the parent of this path.

@@ -37,57 +37,14 @@ public class NamingServer implements Service, Registration
 {
     Skeleton <Service>      serviceInvoker;
     Skeleton <Registration> registrationInvoker;
+    boolean                 canStart = true;
 
     static Logger           logger = Logger.getAnonymousLogger ();
-    static Level            loggingLevel = Level.ALL;
+    static Level            loggingLevel = Level.OFF;
 
-    boolean     canStart = true;
-
-    Map <StorageCommandPair, List <Path>>     files;
-
-    /** Represents an immutable pair of Storage and Command implementations. */
-    private class StorageCommandPair
-    {
-        private Storage storage;
-        private Command command;
-
-        public StorageCommandPair (Storage storage, Command command)
-        {
-            this.storage = storage;
-            this.command = command;
-        }
-
-        public Storage getStorage ()
-        {
-            return storage;
-        }
-
-        public Command getCommand ()
-        {
-            return command;
-        }
-
-        @Override
-        public boolean equals (Object other)
-        {
-            StorageCommandPair  pair;
-
-            if (other instanceof StorageCommandPair) {
-                pair = (StorageCommandPair)other;
-
-                return  pair.storage.equals (storage) &&
-                        pair.command.equals (command);
-            }
-
-            return false;
-        }
-
-        @Override
-        public int hashCode ()
-        {
-            return storage.hashCode () + command.hashCode ();
-        }
-    }
+    Map <Path, StorageCommandPair>  fsFiles;
+    Set <Path>                      fsDirectories;
+    Map <StorageCommandPair, List <Path>>  servers;
 
     /** Creates the naming server object.
 
@@ -120,8 +77,12 @@ public class NamingServer implements Service, Registration
                 serviceAddress
                 );
 
-        files = new ConcurrentHashMap <StorageCommandPair, List <Path>> ();
+        fsFiles = new ConcurrentHashMap <Path, StorageCommandPair> ();
+        fsDirectories = new HashSet <Path> ();
+        fsDirectories.add (new Path ());
+        servers = new ConcurrentHashMap <StorageCommandPair, List <Path>> ();
 
+        logger.setLevel (loggingLevel);
         logger.info ("Created a new naming server");
         logger.info ("Registration requests on " + regAddress);
         logger.info ("Service requests on " + serviceAddress);
@@ -201,7 +162,13 @@ public class NamingServer implements Service, Registration
     {
         logger.info ("Received directory check on " + path);
 
-        throw new UnsupportedOperationException("not implemented");
+        if (path == null) {
+            throw new NullPointerException ("Null location provided");
+        } else if (!findFile (path)) {
+            throw new FileNotFoundException ("No such file: " + path);
+        }
+
+        return fsDirectories.contains (path);
     }
 
     @Override
@@ -209,7 +176,29 @@ public class NamingServer implements Service, Registration
     {
         logger.info ("Received list request for directory " + directory);
 
-        throw new UnsupportedOperationException("not implemented");
+        List <String> contents;
+
+        if (!isDirectory (directory)) {
+            throw new FileNotFoundException ("No such directory " + directory);
+        }
+
+        contents = new ArrayList <String> ();
+
+        for (Path f : fsFiles.keySet ()) {
+            if (f.parent ().equals (directory)) {
+                contents.add (f.last ());
+            }
+        }
+
+        for (Path f : fsDirectories) {
+            if (!f.isRoot () && f.parent ().equals (directory)) {
+                contents.add (f.last ());
+            }
+        }
+
+        logger.info ("Directory contents " + contents);
+
+        return contents.toArray (new String [] {});
     }
 
     @Override
@@ -218,7 +207,22 @@ public class NamingServer implements Service, Registration
     {
         logger.info ("Received request for creation of file " + file);
 
-        throw new UnsupportedOperationException("not implemented");
+        if (file == null) {
+            throw new NullPointerException ("Can't create Null file");
+        } else if (!file.isRoot () && !fsDirectories.contains (file.parent ())) {
+            throw new FileNotFoundException ("Parent directory doesn't exist");
+        }
+
+        StorageCommandPair  pair = randomPair ();
+
+        if (!findFile (file) && pair.getCommand ().create (file)) {
+            fsFiles.put (file, pair);
+            fsDirectories.addAll (getParents (file));
+            servers.get (pair).add (file);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     @Override
@@ -226,7 +230,16 @@ public class NamingServer implements Service, Registration
     {
         logger.info ("Received request for creation of directory " + directory);
 
-        throw new UnsupportedOperationException("not implemented");
+        if (directory == null) {
+            throw new NullPointerException ("Can't create Null directory");
+        } else if (!directory.isRoot () && !isDirectory (directory.parent ())) {
+            throw new FileNotFoundException ("Parent directory doesn't exist");
+        }
+
+
+        return  !directory.isRoot () &&
+                !findFile (directory) &&
+                fsDirectories.add (directory);
     }
 
     @Override
@@ -240,9 +253,21 @@ public class NamingServer implements Service, Registration
     @Override
     public Storage getStorage(Path file) throws FileNotFoundException
     {
+        StorageCommandPair  server;
+
         logger.info ("Received request for storage server for file " + file);
 
-        throw new UnsupportedOperationException("not implemented");
+        if (file == null) {
+            throw new NullPointerException ("Null path detected");
+        }
+
+        server = fsFiles.get (file);
+
+        if (server == null) {
+            throw new FileNotFoundException ("File " + file + " not found");
+        }
+
+        return server.getStorage ();
     }
 
     // The method register is documented in Registration.java.
@@ -250,43 +275,133 @@ public class NamingServer implements Service, Registration
     public Path[] register(Storage client_stub, Command command_stub,
                            Path[] files)
     {
-        List <Path> toDelete = new ArrayList <Path> ();
-        Set <Path>  currentFiles = new HashSet <Path> ();
-
-        Set <StorageCommandPair>    servers = this.files.keySet ();
-        StorageCommandPair          pair =
-            new StorageCommandPair (client_stub, command_stub);
-
-        for (List <Path> filesOnServer : this.files.values ()) {
-            for (Path f : filesOnServer) {
-                currentFiles.add (f);
-            }
-        }
+        StorageCommandPair pair = new StorageCommandPair (
+                                            client_stub,
+                                            command_stub
+                                        );
+        List <Path>     toDelete = new ArrayList <Path> ();
 
         logger.info ("Registering a new storage server");
+        logger.info ("Server has " + Arrays.asList (files));
 
         if (client_stub == null || command_stub == null || files == null) {
             throw new NullPointerException (
                     "Can't register with null arguments"
                     );
-        }
-
-        if (servers.contains (pair)) {
+        } else if (servers.keySet ().contains (pair)) {
             throw new IllegalStateException (
                     "Storage server already regsitered"
                     );
-        } else {
-            this.files.put (pair, new LinkedList <Path> ());
         }
 
+        servers.put (pair, new ArrayList <Path> ());
+
         for (Path remoteFile : files) {
-            if (currentFiles.contains (remoteFile)) {
+            if (!remoteFile.isRoot () && !findFile (remoteFile)) {
+                fsFiles.put (remoteFile, pair);
+                fsDirectories.addAll (getParents (remoteFile));
+
+                servers.get (pair).add (remoteFile);
+            } else if (!remoteFile.isRoot ()) {
                 toDelete.add (remoteFile);
-            } else {
-                this.files.get (pair).add (remoteFile);
             }
         }
 
-        return toDelete.toArray (new Path [0]);
+        logger.info ("Asking storage server to delete " + toDelete);
+
+        return toDelete.toArray (new Path [] {});
     }
+
+    /** Gets a random StorageCommandPair from the known set.
+
+        <p>
+        @return A random StorageCommandPair that is still connected to this
+                naming server.
+     */
+    private StorageCommandPair randomPair ()
+    {
+        Set     allPairs = servers.keySet ();
+        int     pick = new Random ().nextInt (allPairs.size ());
+
+        return (StorageCommandPair)allPairs.toArray () [pick];
+    }
+
+    /** Gets all the parent directories for a given <code>Path</code>.
+
+        <p>
+        @param location The <code>Path</code> of a file.
+        @return A <code>List</list> of <code>Path</code>s representing the 
+                parent directories. The root will not be included as a parent.
+     */
+    private List<Path> getParents (Path location)
+    {
+        List <Path> parents = new ArrayList <Path> ();
+        Path        parent = location.parent ();
+
+        while (!parent.isRoot ()) {
+            parents.add (parent);
+
+            parent = parent.parent ();
+        }
+
+        return parents;
+    }
+
+    /** Searches for a directory or a file with the given path.
+
+        <p>
+        @param location Is the directory or file location to check for the 
+                        existence of.
+        @return true If a directory or a file at that location is found.
+     */
+    private boolean findFile (Path location)
+    {
+        return  fsDirectories.contains (location) ||
+                fsFiles.containsKey (location);
+    }
+
+    /** Represents an immutable pair of Storage and Command implementations. */
+    private class StorageCommandPair
+    {
+        private Storage storage;
+        private Command command;
+
+        public StorageCommandPair (Storage storage, Command command)
+        {
+            this.storage = storage;
+            this.command = command;
+        }
+
+        public Storage getStorage ()
+        {
+            return storage;
+        }
+
+        public Command getCommand ()
+        {
+            return command;
+        }
+
+        @Override
+        public boolean equals (Object other)
+        {
+            StorageCommandPair  pair;
+
+            if (other instanceof StorageCommandPair) {
+                pair = (StorageCommandPair)other;
+
+                return  pair.storage.equals (storage) &&
+                        pair.command.equals (command);
+            }
+
+            return false;
+        }
+
+        @Override
+        public int hashCode ()
+        {
+            return storage.hashCode () + command.hashCode ();
+        }
+    }
+
 }
