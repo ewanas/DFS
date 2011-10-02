@@ -22,13 +22,15 @@ import naming.*;
  */
 public class StorageServer implements Storage, Command
 {
-    File        root;
+    File    root;
 
     Skeleton <Storage>  storageInvoker;
     Skeleton <Command>  commandInvoker;
 
-    static Logger       logger = Logger.getAnonymousLogger ();
-    static Level        loggingLevel = Level.OFF;
+    static Logger   logger = Logger.getAnonymousLogger ();
+    static Level    loggingLevel = Level.OFF;
+
+    boolean     canStart = true;
 
     /** Creates a storage server, given a directory on the local filesystem.
 
@@ -80,6 +82,11 @@ public class StorageServer implements Storage, Command
 
         logger.info ("Staring the storage server");
 
+        if (!canStart) {
+            logger.severe ("Can't restart the storage server");
+            return;
+        }
+
         storageInvoker.start ();
         commandInvoker.start ();
 
@@ -123,9 +130,10 @@ public class StorageServer implements Storage, Command
     protected void stopped(Throwable cause)
     {
         if (cause != null) {
-            // TODO log it
-            // Throw it, maybe.
+            logger.severe ("Storage server stopped abnormally " + cause);
         }
+
+        canStart = false;
     }
 
     // The following methods are documented in Storage.java.

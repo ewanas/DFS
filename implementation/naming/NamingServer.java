@@ -1,6 +1,8 @@
 package naming;
 
 import java.io.*;
+import java.net.*;
+import java.util.logging.*;
 
 import rmi.*;
 import common.*;
@@ -31,6 +33,14 @@ import storage.*;
  */
 public class NamingServer implements Service, Registration
 {
+    Skeleton <Service>      serviceInvoker;
+    Skeleton <Registration> registrationInvoker;
+
+    static Logger           logger = Logger.getAnonymousLogger ();
+    static Level            loggingLevel = Level.ALL;
+
+    boolean     canStart = true;
+
     /** Creates the naming server object.
 
         <p>
@@ -38,7 +48,37 @@ public class NamingServer implements Service, Registration
      */
     public NamingServer()
     {
-        throw new UnsupportedOperationException("not implemented");
+        InetSocketAddress   regAddress = null;
+        InetSocketAddress   serviceAddress = null;
+
+        try {
+            regAddress = new InetSocketAddress (
+                    InetAddress.getLocalHost (),
+                    NamingStubs.REGISTRATION_PORT
+                    );
+            serviceAddress = new InetSocketAddress (
+                    InetAddress.getLocalHost (),
+                    NamingStubs.SERVICE_PORT
+                    );
+
+            registrationInvoker = new Skeleton <Registration> (
+                    Registration.class,
+                    this,
+                    regAddress
+                    );
+
+            serviceInvoker = new Skeleton<Service> (
+                    Service.class,
+                    this,
+                    serviceAddress
+                    );
+        } catch (UnknownHostException e) {
+            stopped (e);
+        }
+
+        logger.info ("Created a new naming server");
+        logger.info ("Registration requests on " + regAddress);
+        logger.info ("Service requests on " + serviceAddress);
     }
 
     /** Starts the naming server.
@@ -54,7 +94,20 @@ public class NamingServer implements Service, Registration
      */
     public synchronized void start() throws RMIException
     {
-        throw new UnsupportedOperationException("not implemented");
+        if (canStart) {
+            try {
+                registrationInvoker.start ();
+                serviceInvoker.start ();
+            } catch (RMIException e) {
+                logger.info ("Failed to start invokers " + e.getMessage ());
+                stopped (e);
+                throw e;
+            }
+
+            logger.info ("Started the Naming server");
+        } else {
+            logger.severe ("Can't restart the naming server");
+        }
     }
 
     /** Stops the naming server.
@@ -68,7 +121,12 @@ public class NamingServer implements Service, Registration
      */
     public void stop()
     {
-        throw new UnsupportedOperationException("not implemented");
+        logger.info ("Stopping the naming server");
+
+        registrationInvoker.stop ();
+        serviceInvoker.stop ();
+
+        stopped (null);
     }
 
     /** Indicates that the server has completely shut down.
@@ -82,18 +140,27 @@ public class NamingServer implements Service, Registration
      */
     protected void stopped(Throwable cause)
     {
+        if (cause != null) {
+            logger.severe ("Naming server stopped abnormally " + cause);
+        }
+
+        canStart = false;
     }
 
     // The following methods are documented in Service.java.
     @Override
     public boolean isDirectory(Path path) throws FileNotFoundException
     {
+        logger.info ("Received directory check on " + path);
+
         throw new UnsupportedOperationException("not implemented");
     }
 
     @Override
     public String[] list(Path directory) throws FileNotFoundException
     {
+        logger.info ("Received list request for directory " + directory);
+
         throw new UnsupportedOperationException("not implemented");
     }
 
@@ -101,24 +168,32 @@ public class NamingServer implements Service, Registration
     public boolean createFile(Path file)
         throws RMIException, FileNotFoundException
     {
+        logger.info ("Received request for creation of file " + file);
+
         throw new UnsupportedOperationException("not implemented");
     }
 
     @Override
     public boolean createDirectory(Path directory) throws FileNotFoundException
     {
+        logger.info ("Received request for creation of directory " + directory);
+
         throw new UnsupportedOperationException("not implemented");
     }
 
     @Override
     public boolean delete(Path path) throws FileNotFoundException
     {
+        logger.info ("Received request for deletion of " + path);
+
         throw new UnsupportedOperationException("not implemented");
     }
 
     @Override
     public Storage getStorage(Path file) throws FileNotFoundException
     {
+        logger.info ("Received request for storage server for file " + file);
+
         throw new UnsupportedOperationException("not implemented");
     }
 
@@ -127,7 +202,8 @@ public class NamingServer implements Service, Registration
     public Path[] register(Storage client_stub, Command command_stub,
                            Path[] files)
     {
-        System.out.println ("yay!");
-        while (true) {}
+        logger.info ("Registering a new storage server");
+
+        throw new UnsupportedOperationException("not implemented");
     }
 }

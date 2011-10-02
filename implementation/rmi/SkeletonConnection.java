@@ -18,7 +18,7 @@ class SkeletonConnection <T> implements Runnable
     Object[]            args;
 
     static Logger       logger = Logger.getAnonymousLogger ();
-    static Level        loggingLevel = Level.OFF;
+    static Level        loggingLevel = Level.ALL;
 
     public SkeletonConnection (
             Socket connection,

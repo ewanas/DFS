@@ -35,7 +35,7 @@ public class Skeleton<T>
     SkeletonServer<T>   skeletonServer;
     T                   implementation;
     Logger              logger = Logger.getAnonymousLogger ();
-    Level               loggingLevel = Level.OFF;
+    Level               loggingLevel = Level.ALL;
 
     /** Creates a <code>Skeleton</code> with no initial server address. The
         address will be determined by the system when <code>start</code> is
