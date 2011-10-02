@@ -112,14 +112,7 @@ public class Skeleton<T>
         } else if (address == null) {
             throw new NullPointerException ("Null socket address provided");
         } else {
-            try {
-                this.address = new InetSocketAddress (
-                        InetAddress.getLocalHost (),
-                        address.getPort ()
-                        );
-            } catch (UnknownHostException e) {
-                throw new Error (e.getMessage ());
-            }
+            this.address = address;
         }
 
         implementation = server;
