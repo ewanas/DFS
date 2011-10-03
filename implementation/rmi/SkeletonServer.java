@@ -34,6 +34,7 @@ class SkeletonServer<T> implements Runnable
         this.parent = parent;
         server = new ServerSocket ();
         server.bind (parent.address);
+
         parent.address = new InetSocketAddress (
                 server.getInetAddress (),
                 server.getLocalPort ()

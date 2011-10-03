@@ -281,9 +281,9 @@ public abstract class Stub
 
                     result = fromServer.readObject ();
 
-                    connection.close ();
-                    toServer.close ();
                     fromServer.close ();
+                    toServer.close ();
+                    connection.close ();
                 } catch (IOException e) {
                     logger.severe (
                             "IOException on connection with " + address +

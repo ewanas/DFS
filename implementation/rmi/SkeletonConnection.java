@@ -13,6 +13,7 @@ class SkeletonConnection <T> implements Runnable
     T                   implementation;
     SkeletonServer<T>   server;
     ObjectOutputStream  result;
+    ObjectInputStream   stubCall;
 
     Method              method;
     Object[]            args;
@@ -47,7 +48,6 @@ class SkeletonConnection <T> implements Runnable
     {
         Object                  invocation;
         RMI.SerializedMethod    methodName;
-        ObjectInputStream       stubCall;
 
         // Both streams have to be opened, for the readObject() to work
         // readObject () blocks on the absence of of an OutputStream
@@ -119,6 +119,9 @@ class SkeletonConnection <T> implements Runnable
         try {
             unpackInvocation ();
             invoke ();
+
+            result.close ();
+            stubCall.close ();
             clientSocket.close ();
         } catch (Exception e) {
             logger.severe (
