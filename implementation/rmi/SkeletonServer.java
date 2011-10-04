@@ -13,6 +13,7 @@ class SkeletonServer<T> implements Runnable
     private Skeleton <T>        parent;
     private ExecutorService     clientPool;
     volatile private boolean    stopped = false;
+    volatile private boolean    serverClosed = false;
     private T                   implementation;
     static Logger               logger = Logger.getAnonymousLogger ();
     static Level                loggingLevel = Level.OFF;
@@ -72,6 +73,8 @@ class SkeletonServer<T> implements Runnable
 
                 parent.listen_error (e);
             }
+        } finally {
+            serverClosed = true;
         }
     }
 
@@ -81,7 +84,8 @@ class SkeletonServer<T> implements Runnable
         stopped = true;
         try {
             server.close ();
-        } catch (IOException e) {
+            while (!serverClosed);
+        } catch (Exception e) {
             stopped = false;
         }
     }
