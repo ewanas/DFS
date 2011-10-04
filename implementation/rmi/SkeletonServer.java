@@ -79,20 +79,10 @@ class SkeletonServer<T> implements Runnable
     public void stop ()
     {
         stopped = true;
-        while (!closeSocket (server))
-            stopped = false;
-        stopped = true;
-    }
-
-    /** Returns true if the socket is closed. */
-    private boolean closeSocket (ServerSocket sock)
-    {
         try {
-            sock.close ();
-            Thread.currentThread ().sleep (10);
-            return true;
-        } catch (Exception e) {
-            return false;
+            server.close ();
+        } catch (IOException e) {
+            stopped = false;
         }
     }
 
