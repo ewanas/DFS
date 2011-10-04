@@ -52,8 +52,9 @@ class SkeletonConnection <T> implements Runnable
         // Both streams have to be opened, for the readObject() to work
         // readObject () blocks on the absence of of an OutputStream
         // TODO check the validity of this
-        stubCall = new ObjectInputStream (clientSocket.getInputStream ());
         result = new ObjectOutputStream (clientSocket.getOutputStream ());
+        stubCall = new ObjectInputStream (clientSocket.getInputStream ());
+        result.flush ();
 
         invocation = stubCall.readObject ();
 
@@ -128,8 +129,6 @@ class SkeletonConnection <T> implements Runnable
                     "Failed to execute method, on the remote side: " +
                     e.getMessage ()
                     );
-
-            server.listen_error (e);
         }
     }
 }

@@ -275,6 +275,7 @@ public abstract class Stub
                             connection.getInputStream ()
                             );
 
+                    toServer.flush ();
                     toServer.writeObject (toInvoke);
 
                     logger.info ("Sent invocation to Skeleton");
